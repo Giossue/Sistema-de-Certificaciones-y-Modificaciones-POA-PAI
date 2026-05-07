@@ -47,11 +47,3 @@ bun run dev
 │   └── web.Dockerfile
 └── docker-compose.yml
 ```
-
-## Fases de entrega
-
-Ver `.claude/product/roadmap.md`.
-
-## Convenciones
-
-Ver `.claude/conventions/code.md`.
