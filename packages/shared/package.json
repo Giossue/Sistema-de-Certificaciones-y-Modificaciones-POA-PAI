@@ -1,0 +1,17 @@
+{
+  "name": "@poa/shared",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./types": "./src/types/index.ts",
+    "./enums": "./src/enums/index.ts",
+    "./money": "./src/money/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint src --ext .ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/bun": "latest"
+  }
+}

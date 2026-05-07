@@ -1,0 +1,209 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Rol {
+  admin
+  director
+  analista
+  unidad
+}
+
+model Usuario {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  password  String
+  nombre    String
+  rol       Rol      @default(unidad)
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  certificacionesSolicitadas Certificacion[] @relation("CertificacionSolicitante")
+  certificacionesAnalista    Certificacion[] @relation("CertificacionAnalista")
+  certificacionesDirector    Certificacion[] @relation("CertificacionDirector")
+  actividadesAsignadas       ActividadesPresupuestarias[]
+  auditorias                 Auditoria[]
+
+  @@map("usuarios")
+}
+
+model PeriodoFiscal {
+  id        String   @id @default(uuid()) @db.Uuid
+  anio      Int      @unique
+  nombre    String
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  actividades ActividadesPresupuestarias[]
+  poaVersions PoaVersion[]
+
+  @@map("periodos_fiscales")
+}
+
+model CedulaMefVersion {
+  id        String   @id @default(uuid()) @db.Uuid
+  corteFecha DateTime @map("corte_fecha")
+  vigente   Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  entradas CedulaEntrada[]
+
+  @@index([corteFecha(sort: Desc)])
+  @@map("cedula_mef_versions")
+}
+
+model CedulaEntrada {
+  id                  String @id @default(uuid()) @db.Uuid
+  versionId           String @map("version_id") @db.Uuid
+  programa            String
+  actividad           String
+  item                String
+  fuente              String
+  montoAsignado       Decimal @map("monto_asignado") @db.Decimal(18, 2)
+
+  version CedulaMefVersion @relation(fields: [versionId], references: [id])
+
+  @@index([programa, actividad, item, fuente])
+  @@map("cedula_entradas")
+}
+
+model PoaVersion {
+  id              String   @id @default(uuid()) @db.Uuid
+  periodoFiscalId String   @map("periodo_fiscal_id") @db.Uuid
+  version         Int
+  vigente         Boolean  @default(true)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  periodoFiscal PeriodoFiscal @relation(fields: [periodoFiscalId], references: [id])
+  actividades   ActividadesPresupuestarias[]
+
+  @@map("poa_versions")
+}
+
+model ActividadesPresupuestarias {
+  id              String  @id @default(uuid()) @db.Uuid
+  poaVersionId    String  @map("poa_version_id") @db.Uuid
+  periodoFiscalId String  @map("periodo_fiscal_id") @db.Uuid
+  unidadId        String? @map("unidad_id") @db.Uuid
+  programa        String
+  actividad       String
+  item            String
+  fuente          String
+  montoAsignado   Decimal @map("monto_asignado") @db.Decimal(18, 2)
+  saldoDisponible Decimal @map("saldo_disponible") @db.Decimal(18, 2)
+
+  poaVersion    PoaVersion      @relation(fields: [poaVersionId], references: [id])
+  periodoFiscal PeriodoFiscal   @relation(fields: [periodoFiscalId], references: [id])
+  unidad        Usuario?        @relation(fields: [unidadId], references: [id])
+  certificaciones Certificacion[]
+
+  @@index([unidadId, poaVersionId])
+  @@map("actividades_presupuestarias")
+}
+
+model Certificacion {
+  id              String   @id @default(uuid()) @db.Uuid
+  numero          String?  @unique
+  actividadId     String   @map("actividad_id") @db.Uuid
+  solicitanteId   String   @map("solicitante_id") @db.Uuid
+  analistaId      String?  @map("analista_id") @db.Uuid
+  directorId      String?  @map("director_id") @db.Uuid
+  monto           Decimal  @db.Decimal(18, 2)
+  conIva          Boolean  @default(false) @map("con_iva")
+  estado          String
+  observaciones   String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  actividad     ActividadesPresupuestarias @relation(fields: [actividadId], references: [id])
+  solicitante   Usuario                    @relation("CertificacionSolicitante", fields: [solicitanteId], references: [id])
+  analista      Usuario?                   @relation("CertificacionAnalista", fields: [analistaId], references: [id])
+  director      Usuario?                   @relation("CertificacionDirector", fields: [directorId], references: [id])
+  documentos    DocumentoHabilitante[]
+
+  @@index([actividadId, estado])
+  @@map("certificaciones")
+}
+
+model DocumentoHabilitante {
+  id              String @id @default(uuid()) @db.Uuid
+  certificacionId String @map("certificacion_id") @db.Uuid
+  tipo            String
+  ruta            String
+  nombreOriginal  String @map("nombre_original")
+  tamano          Int
+  mimeType        String @map("mime_type")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  certificacion Certificacion @relation(fields: [certificacionId], references: [id])
+
+  @@map("documentos_habilitantes")
+}
+
+model Auditoria {
+  id            String   @id @default(uuid()) @db.Uuid
+  usuarioId     String   @map("usuario_id") @db.Uuid
+  entidad       String
+  entidadId     String   @map("entidad_id")
+  accion        String
+  estadoAnterior String? @map("estado_anterior")
+  estadoNuevo   String? @map("estado_nuevo")
+  motivo        String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@map("auditoria")
+}
+
+model CatalogoPrograma {
+  id        String   @id @default(uuid()) @db.Uuid
+  codigo    String   @unique
+  nombre    String
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("catalogo_programas")
+}
+
+model CatalogoActividad {
+  id            String   @id @default(uuid()) @db.Uuid
+  codigo        String   @unique
+  nombre        String
+  programaCodigo String   @map("programa_codigo")
+  activo        Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("catalogo_actividades")
+}
+
+model CatalogoItem {
+  id        String   @id @default(uuid()) @db.Uuid
+  codigo    String   @unique
+  nombre    String
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("catalogo_items")
+}
+
+model CatalogoFuente {
+  id        String   @id @default(uuid()) @db.Uuid
+  codigo    String   @unique
+  nombre    String
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("catalogo_fuentes")
+}

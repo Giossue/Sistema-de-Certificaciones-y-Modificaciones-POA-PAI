@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Storage
+storage/uploads/*
+storage/generated/*
+!storage/uploads/.gitkeep
+!storage/generated/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# Docker
+*.dockerignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Prisma
+prisma/migrations/*/migration.sql
