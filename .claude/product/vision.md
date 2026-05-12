@@ -2,7 +2,7 @@
 
 ## Nombre
 
-Sistema de Certificaciones y Modificaciones POA/PAI.
+Sistema de Certificaciones y Modificaciones POA/PAI para la Universidad Estatal de Bolívar.
 
 ## Objetivo
 

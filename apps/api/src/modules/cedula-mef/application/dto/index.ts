@@ -1,0 +1,1 @@
+export { ImportarCedulaDto, COLUMNAS_REQUERIDAS } from "./importar-cedula.dto";

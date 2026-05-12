@@ -24,10 +24,15 @@ model Usuario {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  certificacionesSolicitadas Certificacion[] @relation("CertificacionSolicitante")
-  certificacionesAnalista    Certificacion[] @relation("CertificacionAnalista")
-  certificacionesDirector    Certificacion[] @relation("CertificacionDirector")
-  actividadesAsignadas       ActividadesPresupuestarias[]
+  certificacionesSolicitadas Certificacion[]            @relation("CertificacionSolicitante")
+  certificacionesAnalista    Certificacion[]            @relation("CertificacionAnalista")
+  certificacionesDirector    Certificacion[]            @relation("CertificacionDirector")
+  modificacionesSolicitadas  ModificacionPoa[]          @relation("ModificacionSolicitante")
+  modificacionesAnalista     ModificacionPoa[]          @relation("ModificacionAnalista")
+  modificacionesDirector     ModificacionPoa[]          @relation("ModificacionDirector")
+  liquidacionesRegistradas   LiquidacionCertificacion[]
+  anulacionesRegistradas     AnulacionCertificacion[]
+  devolucionesRegistradas    DevolucionFinanciero[]
   auditorias                 Auditoria[]
 
   @@map("usuarios")
@@ -41,71 +46,138 @@ model PeriodoFiscal {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  actividades ActividadesPresupuestarias[]
-  poaVersions PoaVersion[]
+  poaVersions    PoaVersion[]
+  cedulaVersions CedulaMefVersion[]
+  modificaciones ModificacionPoa[]
 
   @@map("periodos_fiscales")
 }
 
 model CedulaMefVersion {
-  id        String   @id @default(uuid()) @db.Uuid
-  corteFecha DateTime @map("corte_fecha")
-  vigente   Boolean  @default(true)
-  createdAt DateTime @default(now()) @map("created_at")
+  id              String   @id @default(uuid()) @db.Uuid
+  periodoFiscalId String?  @map("periodo_fiscal_id") @db.Uuid
+  archivoNombre   String   @map("archivo_nombre")
+  archivoHash     String   @map("archivo_hash")
+  corteFecha      DateTime @map("corte_fecha")
+  vigente         Boolean  @default(true)
+  importadoPor    String   @map("importado_por")
+  createdAt       DateTime @default(now()) @map("created_at")
 
-  entradas CedulaEntrada[]
+  periodoFiscal   PeriodoFiscal?     @relation(fields: [periodoFiscalId], references: [id])
+  entradas        CedulaMefEntrada[]
+  certificaciones Certificacion[]
 
   @@index([corteFecha(sort: Desc)])
+  @@index([periodoFiscalId, vigente])
   @@map("cedula_mef_versions")
 }
 
-model CedulaEntrada {
-  id                  String @id @default(uuid()) @db.Uuid
-  versionId           String @map("version_id") @db.Uuid
-  programa            String
-  actividad           String
-  item                String
-  fuente              String
-  montoAsignado       Decimal @map("monto_asignado") @db.Decimal(18, 2)
+model CedulaMefEntrada {
+  id              String   @id @default(uuid()) @db.Uuid
+  versionId       String   @map("version_id") @db.Uuid
+  programaCodigo  String   @map("programa_codigo")
+  programaNombre  String   @map("programa_nombre")
+  actividadCodigo String   @map("actividad_codigo")
+  actividadNombre String   @map("actividad_nombre")
+  itemCodigo      String   @map("item_codigo")
+  itemNombre      String   @map("item_nombre")
+  fuenteCodigo    String   @map("fuente_codigo")
+  fuenteNombre    String   @map("fuente_nombre")
+  montoCodificado Decimal  @map("monto_codificado") @db.Decimal(18, 2)
+  montoDevengado  Decimal  @map("monto_devengado") @db.Decimal(18, 2)
+  saldoDisponible Decimal  @map("saldo_disponible") @db.Decimal(18, 2)
+  createdAt       DateTime @default(now()) @map("created_at")
 
   version CedulaMefVersion @relation(fields: [versionId], references: [id])
 
-  @@index([programa, actividad, item, fuente])
-  @@map("cedula_entradas")
+  @@index([versionId])
+  @@index([programaCodigo, actividadCodigo, itemCodigo, fuenteCodigo])
+  @@map("cedula_mef_entradas")
 }
 
 model PoaVersion {
-  id              String   @id @default(uuid()) @db.Uuid
-  periodoFiscalId String   @map("periodo_fiscal_id") @db.Uuid
-  version         Int
-  vigente         Boolean  @default(true)
-  createdAt       DateTime @default(now()) @map("created_at")
+  id                   String   @id @default(uuid()) @db.Uuid
+  periodoFiscalId      String   @map("periodo_fiscal_id") @db.Uuid
+  numeroVersion        Int      @map("numero_version")
+  estado               String   @default("borrador")
+  origenModificacionId String?  @map("origen_modificacion_id") @db.Uuid
+  vigente              Boolean  @default(true)
+  createdAt            DateTime @default(now()) @map("created_at")
+  createdBy            String   @map("created_by")
 
-  periodoFiscal PeriodoFiscal @relation(fields: [periodoFiscalId], references: [id])
-  actividades   ActividadesPresupuestarias[]
+  periodoFiscal PeriodoFiscal    @relation(fields: [periodoFiscalId], references: [id])
+  actividades   ActividadesPoa[]
 
+  @@unique([periodoFiscalId, numeroVersion])
   @@map("poa_versions")
 }
 
-model ActividadesPresupuestarias {
-  id              String  @id @default(uuid()) @db.Uuid
-  poaVersionId    String  @map("poa_version_id") @db.Uuid
-  periodoFiscalId String  @map("periodo_fiscal_id") @db.Uuid
-  unidadId        String? @map("unidad_id") @db.Uuid
-  programa        String
-  actividad       String
-  item            String
-  fuente          String
-  montoAsignado   Decimal @map("monto_asignado") @db.Decimal(18, 2)
-  saldoDisponible Decimal @map("saldo_disponible") @db.Decimal(18, 2)
+model ActividadesPoa {
+  id               String   @id @default(uuid()) @db.Uuid
+  poaVersionId     String   @map("poa_version_id") @db.Uuid
+  unidadId         String?  @map("unidad_id") @db.Uuid
+  programaCodigo   String   @map("programa_codigo")
+  programaNombre   String   @map("programa_nombre")
+  actividadCodigo  String   @map("actividad_codigo")
+  actividadNombre  String   @map("actividad_nombre")
+  itemCodigo       String   @map("item_codigo")
+  itemNombre       String   @map("item_nombre")
+  fuenteCodigo     String   @map("fuente_codigo")
+  fuenteNombre     String   @map("fuente_nombre")
+  montoPlanificado Decimal  @map("monto_planificado") @db.Decimal(18, 2)
+  saldoDisponible  Decimal  @map("saldo_disponible") @db.Decimal(18, 2)
+  createdAt        DateTime @default(now()) @map("created_at")
 
-  poaVersion    PoaVersion      @relation(fields: [poaVersionId], references: [id])
-  periodoFiscal PeriodoFiscal   @relation(fields: [periodoFiscalId], references: [id])
-  unidad        Usuario?        @relation(fields: [unidadId], references: [id])
-  certificaciones Certificacion[]
+  poaVersion           PoaVersion        @relation(fields: [poaVersionId], references: [id])
+  certificaciones      Certificacion[]
+  modificacionesOrigen ModificacionPoa[]
 
-  @@index([unidadId, poaVersionId])
-  @@map("actividades_presupuestarias")
+  @@index([poaVersionId, unidadId])
+  @@map("actividades_poa")
+}
+
+model ModificacionPoa {
+  id                       String   @id @default(uuid()) @db.Uuid
+  numero                   String?  @unique
+  periodoFiscalId          String   @map("periodo_fiscal_id") @db.Uuid
+  actividadOrigenId        String   @map("actividad_origen_id") @db.Uuid
+  solicitanteId            String   @map("solicitante_id") @db.Uuid
+  analistaId               String?  @map("analista_id") @db.Uuid
+  directorId               String?  @map("director_id") @db.Uuid
+  estado                   String
+  motivo                   String
+  observaciones            String?
+  programaCodigoAnterior   String   @map("programa_codigo_anterior")
+  programaNombreAnterior   String   @map("programa_nombre_anterior")
+  actividadCodigoAnterior  String   @map("actividad_codigo_anterior")
+  actividadNombreAnterior  String   @map("actividad_nombre_anterior")
+  itemCodigoAnterior       String   @map("item_codigo_anterior")
+  itemNombreAnterior       String   @map("item_nombre_anterior")
+  fuenteCodigo             String   @map("fuente_codigo")
+  fuenteNombre             String   @map("fuente_nombre")
+  montoPlanificadoAnterior Decimal  @map("monto_planificado_anterior") @db.Decimal(18, 2)
+  programaCodigoNuevo      String   @map("programa_codigo_nuevo")
+  programaNombreNuevo      String   @map("programa_nombre_nuevo")
+  actividadCodigoNuevo     String   @map("actividad_codigo_nuevo")
+  actividadNombreNuevo     String   @map("actividad_nombre_nuevo")
+  itemCodigoNuevo          String   @map("item_codigo_nuevo")
+  itemNombreNuevo          String   @map("item_nombre_nuevo")
+  montoPlanificadoNuevo    Decimal  @map("monto_planificado_nuevo") @db.Decimal(18, 2)
+  informeRuta              String?  @map("informe_ruta")
+  nuevaPoaVersionId        String?  @map("nueva_poa_version_id") @db.Uuid
+  nuevaActividadId         String?  @map("nueva_actividad_id") @db.Uuid
+  createdAt                DateTime @default(now()) @map("created_at")
+  updatedAt                DateTime @updatedAt @map("updated_at")
+
+  periodoFiscal   PeriodoFiscal  @relation(fields: [periodoFiscalId], references: [id])
+  actividadOrigen ActividadesPoa @relation(fields: [actividadOrigenId], references: [id])
+  solicitante     Usuario        @relation("ModificacionSolicitante", fields: [solicitanteId], references: [id])
+  analista        Usuario?       @relation("ModificacionAnalista", fields: [analistaId], references: [id])
+  director        Usuario?       @relation("ModificacionDirector", fields: [directorId], references: [id])
+
+  @@index([periodoFiscalId, estado])
+  @@index([actividadOrigenId, estado])
+  @@map("modificaciones_poa")
 }
 
 model Certificacion {
@@ -119,27 +191,81 @@ model Certificacion {
   conIva          Boolean  @default(false) @map("con_iva")
   estado          String
   observaciones   String?
+  cedulaVersionId String?  @map("cedula_version_id") @db.Uuid
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  actividad     ActividadesPresupuestarias @relation(fields: [actividadId], references: [id])
+  actividad     ActividadesPoa?            @relation(fields: [actividadId], references: [id])
   solicitante   Usuario                    @relation("CertificacionSolicitante", fields: [solicitanteId], references: [id])
   analista      Usuario?                   @relation("CertificacionAnalista", fields: [analistaId], references: [id])
   director      Usuario?                   @relation("CertificacionDirector", fields: [directorId], references: [id])
   documentos    DocumentoHabilitante[]
+  cedulaVersion CedulaMefVersion?          @relation(fields: [cedulaVersionId], references: [id])
+  liquidaciones LiquidacionCertificacion[]
+  anulacion     AnulacionCertificacion?
+  devoluciones  DevolucionFinanciero[]
 
   @@index([actividadId, estado])
   @@map("certificaciones")
 }
 
+model LiquidacionCertificacion {
+  id              String   @id @default(uuid()) @db.Uuid
+  certificacionId String   @map("certificacion_id") @db.Uuid
+  usuarioId       String   @map("usuario_id") @db.Uuid
+  tipo            String
+  modo            String
+  monto           Decimal  @db.Decimal(18, 2)
+  motivo          String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  certificacion Certificacion @relation(fields: [certificacionId], references: [id])
+  usuario       Usuario       @relation(fields: [usuarioId], references: [id])
+
+  @@index([certificacionId])
+  @@map("liquidaciones_certificacion")
+}
+
+model AnulacionCertificacion {
+  id              String   @id @default(uuid()) @db.Uuid
+  certificacionId String   @unique @map("certificacion_id") @db.Uuid
+  usuarioId       String   @map("usuario_id") @db.Uuid
+  motivo          String
+  montoLiberado   Decimal  @map("monto_liberado") @db.Decimal(18, 2)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  certificacion Certificacion @relation(fields: [certificacionId], references: [id])
+  usuario       Usuario       @relation(fields: [usuarioId], references: [id])
+
+  @@map("anulaciones_certificacion")
+}
+
+model DevolucionFinanciero {
+  id                 String   @id @default(uuid()) @db.Uuid
+  certificacionId    String?  @map("certificacion_id") @db.Uuid
+  usuarioId          String   @map("usuario_id") @db.Uuid
+  causa              String
+  descripcion        String
+  reglaAsociada      String?  @map("regla_asociada")
+  cubiertaPorSistema Boolean  @default(false) @map("cubierta_por_sistema")
+  improcedente       Boolean  @default(false)
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  certificacion Certificacion? @relation(fields: [certificacionId], references: [id])
+  usuario       Usuario        @relation(fields: [usuarioId], references: [id])
+
+  @@index([causa, createdAt])
+  @@map("devoluciones_financiero")
+}
+
 model DocumentoHabilitante {
-  id              String @id @default(uuid()) @db.Uuid
-  certificacionId String @map("certificacion_id") @db.Uuid
+  id              String   @id @default(uuid()) @db.Uuid
+  certificacionId String   @map("certificacion_id") @db.Uuid
   tipo            String
   ruta            String
-  nombreOriginal  String @map("nombre_original")
+  nombreOriginal  String   @map("nombre_original")
   tamano          Int
-  mimeType        String @map("mime_type")
+  mimeType        String   @map("mime_type")
   createdAt       DateTime @default(now()) @map("created_at")
 
   certificacion Certificacion @relation(fields: [certificacionId], references: [id])
@@ -148,15 +274,15 @@ model DocumentoHabilitante {
 }
 
 model Auditoria {
-  id            String   @id @default(uuid()) @db.Uuid
-  usuarioId     String   @map("usuario_id") @db.Uuid
-  entidad       String
-  entidadId     String   @map("entidad_id")
-  accion        String
-  estadoAnterior String? @map("estado_anterior")
-  estadoNuevo   String? @map("estado_nuevo")
-  motivo        String?
-  createdAt     DateTime @default(now()) @map("created_at")
+  id             String   @id @default(uuid()) @db.Uuid
+  usuarioId      String   @map("usuario_id") @db.Uuid
+  entidad        String
+  entidadId      String   @map("entidad_id")
+  accion         String
+  estadoAnterior String?  @map("estado_anterior")
+  estadoNuevo    String?  @map("estado_nuevo")
+  motivo         String?
+  createdAt      DateTime @default(now()) @map("created_at")
 
   usuario Usuario @relation(fields: [usuarioId], references: [id])
 
@@ -175,13 +301,13 @@ model CatalogoPrograma {
 }
 
 model CatalogoActividad {
-  id            String   @id @default(uuid()) @db.Uuid
-  codigo        String   @unique
-  nombre        String
+  id             String   @id @default(uuid()) @db.Uuid
+  codigo         String   @unique
+  nombre         String
   programaCodigo String   @map("programa_codigo")
-  activo        Boolean  @default(true)
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  activo         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   @@map("catalogo_actividades")
 }

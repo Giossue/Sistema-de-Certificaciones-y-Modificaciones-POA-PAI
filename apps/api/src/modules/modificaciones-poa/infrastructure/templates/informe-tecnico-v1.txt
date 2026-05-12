@@ -1,0 +1,14 @@
+INFORME TECNICO DE MODIFICACION POA
+Numero: {{numero}}
+Fecha: {{fecha}}
+Motivo: {{motivo}}
+Programa anterior: {{programaAnterior}}
+Programa nuevo: {{programaNuevo}}
+Actividad anterior: {{actividadAnterior}}
+Actividad nueva: {{actividadNueva}}
+Item anterior: {{itemAnterior}}
+Item nuevo: {{itemNuevo}}
+Fuente de financiamiento: {{fuente}}
+Monto anterior: USD {{montoAnterior}}
+Monto nuevo: USD {{montoNuevo}}
+Documento generado automaticamente por el sistema.

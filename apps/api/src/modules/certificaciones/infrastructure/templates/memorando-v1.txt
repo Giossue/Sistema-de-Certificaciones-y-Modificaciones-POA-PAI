@@ -1,0 +1,7 @@
+MEMORANDO DE CERTIFICACION POA/PAI
+Referencia: {{numero}}
+Fecha: {{fecha}}
+La Direccion de Planificacion certifica que la actividad consta en el POA/PAI vigente.
+Actividad: {{actividadCodigo}} - {{actividadNombre}}
+Monto: USD {{monto}}
+Documento generado automaticamente por el sistema.

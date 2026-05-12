@@ -1,0 +1,10 @@
+CERTIFICACION POA/PAI
+Numero: {{numero}}
+Fecha: {{fecha}}
+Solicitante: {{solicitanteNombre}}
+Programa: {{programaCodigo}} - {{programaNombre}}
+Actividad: {{actividadCodigo}} - {{actividadNombre}}
+Item: {{itemCodigo}} - {{itemNombre}}
+Fuente: {{fuenteCodigo}} - {{fuenteNombre}}
+Monto certificado: USD {{monto}} ({{ivaTexto}})
+Estado: GENERADA PARA SUSCRIPCION

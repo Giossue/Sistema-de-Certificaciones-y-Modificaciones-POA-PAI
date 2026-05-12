@@ -30,6 +30,7 @@ export class LoginUsecase {
       sub: usuario.id,
       email: usuario.email,
       rol: usuario.rol,
+      nombre: usuario.nombre,
     })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()

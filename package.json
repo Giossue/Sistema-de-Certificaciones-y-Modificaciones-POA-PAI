@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "concurrently \"bun run --cwd apps/api dev\" \"bun run --cwd apps/web dev\"",
     "build": "bun run --cwd apps/web build && bun run --cwd apps/api build",
-    "test": "bun test --cwd apps/api && bun test --cwd apps/web",
+    "test": "bun run --cwd apps/api test",
     "lint": "eslint apps packages --ext .ts,.tsx",
     "db:migrate": "bun run --cwd apps/api prisma migrate dev",
     "db:seed": "bun run --cwd apps/api prisma db seed",
@@ -23,5 +23,9 @@
   },
   "engines": {
     "bun": ">=1.3.0"
+  },
+  "dependencies": {
+    "@heroui/react": "3.0.3",
+    "lucide-react": "^1.14.0"
   }
 }

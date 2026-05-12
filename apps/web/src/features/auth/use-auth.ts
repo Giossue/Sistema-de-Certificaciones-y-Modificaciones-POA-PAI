@@ -36,14 +36,19 @@ export function useAuth() {
 
   const login = useCallback(
     async (email: string, password: string) => {
-      const res = await api.post<{ token: string; usuario: AuthUser }>("/auth/login", {
-        email,
-        password,
-      });
-      localStorage.setItem("poa_token", res.token);
-      setUser(res.usuario);
-      navigate("/");
-      return res;
+      try {
+        const res = await api.post<{ token: string; usuario: AuthUser }>("/auth/login", {
+          email,
+          password,
+        });
+        localStorage.setItem("poa_token", res.token);
+        setUser(res.usuario);
+        navigate("/");
+        return res;
+      } catch (err) {
+        console.error("Login error:", err);
+        throw err;
+      }
     },
     [navigate]
   );

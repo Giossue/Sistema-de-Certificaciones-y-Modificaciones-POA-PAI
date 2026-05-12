@@ -1,6 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Rol } from "@prisma/client";
 import { UsuariosRepository } from "../../domain/repositories/usuarios.repository";
-import { UsuarioEntity } from "../../domain/entities/usuario.entity";
+import type { UsuarioEntity } from "../../domain/entities/usuario.entity";
 
 export class UsuariosRepositoryImpl implements UsuariosRepository {
   constructor(private readonly prisma: PrismaClient) {}
@@ -18,12 +18,28 @@ export class UsuariosRepositoryImpl implements UsuariosRepository {
   }
 
   async crear(data: Omit<UsuarioEntity, "id" | "createdAt" | "updatedAt"> & { password: string }): Promise<UsuarioEntity> {
-    const usuario = await this.prisma.usuario.create({ data });
+    const usuario = await this.prisma.usuario.create({
+      data: {
+        email: data.email,
+        password: data.password,
+        nombre: data.nombre,
+        rol: data.rol as Rol,
+        activo: data.activo,
+      },
+    });
     return this.toEntity(usuario);
   }
 
   async actualizar(id: string, data: Partial<Omit<UsuarioEntity, "id" | "createdAt" | "updatedAt">>): Promise<UsuarioEntity> {
-    const usuario = await this.prisma.usuario.update({ where: { id }, data });
+    const usuario = await this.prisma.usuario.update({
+      where: { id },
+      data: {
+        ...(data.email && { email: data.email }),
+        ...(data.nombre && { nombre: data.nombre }),
+        ...(data.rol && { rol: data.rol as Rol }),
+        ...(data.activo !== undefined && { activo: data.activo }),
+      },
+    });
     return this.toEntity(usuario);
   }
 
