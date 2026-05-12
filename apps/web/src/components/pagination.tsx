@@ -34,8 +34,7 @@ export function Pagination({ currentPage, totalPages, onPageChange, totalItems, 
             <Button
               key={page}
               size="sm"
-              variant={page === currentPage ? "solid" : "outline"}
-              className={page === currentPage ? "bg-primary text-white" : ""}
+              variant={page === currentPage ? "primary" : "outline"}
               onPress={() => onPageChange(page)}
             >
               {page}

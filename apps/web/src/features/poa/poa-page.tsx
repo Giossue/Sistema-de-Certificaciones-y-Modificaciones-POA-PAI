@@ -44,6 +44,8 @@ type Filtro = {
   verSoloConSaldo: boolean;
 };
 
+const ITEMS_PER_PAGE = 20;
+
 export function PoaPage() {
   const [periodoFiscalId, setPeriodoFiscalId] = useState("");
   const [periodos, setPeriodos] = useState<PeriodoFiscal[]>([]);
@@ -54,6 +56,7 @@ export function PoaPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [importResult, setImportResult] = useState<any>(null);
   const [importError, setImportError] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [filtro, setFiltro] = useState<Filtro>({
     texto: "",
@@ -63,8 +66,6 @@ export function PoaPage() {
     fuente: "",
     verSoloConSaldo: false,
   });
-  const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 20;
 
   useEffect(() => {
     const cargarPeriodos = async () => {
@@ -426,85 +427,86 @@ export function PoaPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {actividadesPaginadas.map((a, idx) => {
+                  {actividadesPaginadas.map((a) => {
                     const saldo = Number(a.saldoDisponible);
                     const pct = a.porcentajeDisponible ?? (Number(a.montoPlanificado) > 0 ? (saldo / Number(a.montoPlanificado)) * 100 : 0);
                     let color = "text-green-600";
                     if (a.estado === "agotado" || a.estado === "critico" || pct < 10) color = "text-red-600";
                     else if (a.estado === "bajo" || pct < 30) color = "text-yellow-600";
                     return (
-                      <tr key={a.id} className={`border-b border-slate-100 hover:bg-slate-50 ${idx % 2 === 0 ? "bg-white" : "bg-slate-50/30"}`}>
-                      <td className="px-4 py-3">
-                        <span className="font-mono font-medium text-xs">{a.programaCodigo}</span>
-                        <p className="text-xs text-slate-400 truncate max-w-[120px]">{a.programaNombre}</p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="font-mono text-xs">{a.actividadCodigo}</span>
-                        <p className="text-xs text-slate-500 truncate max-w-[150px]">{a.actividadNombre}</p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="font-mono text-xs">{a.itemCodigo}</span>
-                        <p className="text-xs text-slate-500 truncate max-w-[150px]">{a.itemNombre}</p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="font-mono text-xs">{a.fuenteCodigo}</span>
-                        <p className="text-xs text-slate-500 truncate max-w-[120px]">{a.fuenteNombre}</p>
-                      </td>
-                      <td className="px-4 py-3 text-right font-medium text-slate-700">
-                        ${Number(a.montoPlanificado).toLocaleString("es-EC", { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="px-4 py-3 text-right text-slate-600">
-                        ${Number(a.certificadoVigente || 0).toLocaleString("es-EC", { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="px-4 py-3 text-right text-amber-700">
-                        ${Number(a.bloqueadoSolicitudes || 0).toLocaleString("es-EC", { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className={`px-4 py-3 text-right font-bold ${color}`}>
-                        ${saldo.toLocaleString("es-EC", { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {saldo > 0 ? (
-                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
-                            {a.estado === "ok" || pct > 30 ? "OK" : a.estado === "bajo" || pct > 10 ? "Bajo" : "Crítico"}
-                          </span>
-                        ) : (
-                          <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded">Agotado</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <Button
-                          size="sm"
-                          className="bg-primary text-white text-xs"
-                          isDisabled={saldo <= 0}
-                          onPress={() => {
-                            localStorage.setItem("certificacion_prefill", JSON.stringify({
-                              periodoFiscalId,
-                              programaCodigo: a.programaCodigo,
-                              actividadCodigo: a.actividadCodigo,
-                              itemCodigo: a.itemCodigo,
-                              fuenteCodigo: a.fuenteCodigo,
-                              saldoDisponible: saldo,
-                            }));
-                            window.location.href = "/certificaciones";
-                          }}
-                        >
-                          Certificar
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={filtradas.length}
-            itemsPerPage={ITEMS_PER_PAGE}
-            onPageChange={setCurrentPage}
-          />
-        </>
+                      <tr key={a.id} className={`border-b border-slate-100 hover:bg-slate-50`}>
+                        <td className="px-4 py-3">
+                          <span className="font-mono font-medium text-xs">{a.programaCodigo}</span>
+                          <p className="text-xs text-slate-400 truncate max-w-[120px]">{a.programaNombre}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="font-mono text-xs">{a.actividadCodigo}</span>
+                          <p className="text-xs text-slate-500 truncate max-w-[150px]">{a.actividadNombre}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="font-mono text-xs">{a.itemCodigo}</span>
+                          <p className="text-xs text-slate-500 truncate max-w-[150px]">{a.itemNombre}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="font-mono text-xs">{a.fuenteCodigo}</span>
+                          <p className="text-xs text-slate-500 truncate max-w-[120px]">{a.fuenteNombre}</p>
+                        </td>
+                        <td className="px-4 py-3 text-right font-medium text-slate-700">
+                          ${Number(a.montoPlanificado).toLocaleString("es-EC", { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="px-4 py-3 text-right text-slate-600">
+                          ${Number(a.certificadoVigente || 0).toLocaleString("es-EC", { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="px-4 py-3 text-right text-amber-700">
+                          ${Number(a.bloqueadoSolicitudes || 0).toLocaleString("es-EC", { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className={`px-4 py-3 text-right font-bold ${color}`}>
+                          ${saldo.toLocaleString("es-EC", { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {saldo > 0 ? (
+                            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                              {a.estado === "ok" || pct > 30 ? "OK" : a.estado === "bajo" || pct > 10 ? "Bajo" : "Crítico"}
+                            </span>
+                          ) : (
+                            <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded">Agotado</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <Button
+                            size="sm"
+                            className="bg-primary text-white text-xs"
+                            isDisabled={saldo <= 0}
+                            onPress={() => {
+                              localStorage.setItem("certificacion_prefill", JSON.stringify({
+                                periodoFiscalId,
+                                programaCodigo: a.programaCodigo,
+                                actividadCodigo: a.actividadCodigo,
+                                itemCodigo: a.itemCodigo,
+                                fuenteCodigo: a.fuenteCodigo,
+                                saldoDisponible: saldo,
+                              }));
+                              window.location.href = "/certificaciones";
+                            }}
+                          >
+                            Certificar
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filtradas.length}
+              itemsPerPage={ITEMS_PER_PAGE}
+              onPageChange={setCurrentPage}
+            />
+          </>
+        )}
       </div>
     </div>
   );
