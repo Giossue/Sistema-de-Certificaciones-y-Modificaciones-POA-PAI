@@ -274,7 +274,7 @@ export function ModificacionesPoaPage() {
                       <Button size="sm" className="bg-primary text-white" onPress={() => accion(mod.id, "suscribir")}>Suscribir</Button>
                     )}
                     {mod.estado === "suscrita" && (
-                      <Button size="sm" className="bg-green-700 text-white" onPress={() => accion(mod.id, "aprobar")}>
+                      <Button size="sm" className="bg-primary text-white" onPress={() => accion(mod.id, "aprobar")}>
                         <CheckCircle size={14} /> Aprobar
                       </Button>
                     )}

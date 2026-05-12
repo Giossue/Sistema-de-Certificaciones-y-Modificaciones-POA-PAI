@@ -466,7 +466,7 @@ export function NuevaCertificacionPage() {
                             </Button>
                           )}
                           {cert.estado === "generada" && ["director", "admin"].includes(user?.rol || "") && (
-                            <Button size="sm" className="bg-green-700 text-white" onPress={() => accion(cert.id, "suscribir")}>
+                            <Button size="sm" className="bg-primary text-white" onPress={() => accion(cert.id, "suscribir")}>
                               <PenLine size={14} /> Suscribir
                             </Button>
                           )}
