@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Button } from "@heroui/react";
 import { Loader, Plus, Users, Edit2, Trash2, CheckCircle, XCircle } from "lucide-react";
 import { api } from "@/services/api-client";
+import { Pagination } from "@/components/pagination";
 
 type Rol = "admin" | "director" | "analista" | "unidad";
 
@@ -21,6 +22,8 @@ const rolLabel: Record<Rol, string> = {
   unidad: "Unidad",
 };
 
+const ITEMS_PER_PAGE = 10;
+
 export function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,6 +31,7 @@ export function UsuariosPage() {
   const [message, setMessage] = useState("");
   const [form, setForm] = useState({ nombre: "", email: "", password: "", rol: "unidad" as Rol });
   const [editMode, setEditMode] = useState<{ id: string; nombre: string; email: string; rol: Rol } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const cargar = async () => {
     setLoading(true);
@@ -106,6 +110,14 @@ export function UsuariosPage() {
     }
   };
 
+  const usuariosPaginados = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+    return usuarios.slice(start, end);
+  }, [usuarios, currentPage]);
+
+  const totalPages = Math.ceil(usuarios.length / ITEMS_PER_PAGE);
+
   return (
     <div className="p-6">
       <div className="mb-5">
@@ -180,63 +192,72 @@ export function UsuariosPage() {
           {loading ? (
             <div className="p-10 text-center text-slate-400"><Loader size={20} className="animate-spin mx-auto mb-2" /> Cargando usuarios</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Nombre</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Correo</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Rol</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Estado</th>
-                    <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {usuarios.map((usuario) => (
-                    <tr key={usuario.id} className="border-b border-slate-100 hover:bg-slate-50">
-                      <td className="px-4 py-3 font-medium text-slate-800">{usuario.nombre}</td>
-                      <td className="px-4 py-3 text-slate-600">{usuario.email}</td>
-                      <td className="px-4 py-3"><span className="bg-slate-100 text-slate-700 px-2 py-0.5 text-xs">{rolLabel[usuario.rol]}</span></td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded ${usuario.activo ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                          {usuario.activo ? "Activo" : "Inactivo"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8 px-2"
-                            onPress={() => setEditMode({ id: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol })}
-                          >
-                            <Edit2 size={14} />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className={`h-8 px-2 ${usuario.activo ? "text-amber-600 hover:bg-amber-50" : "text-green-600 hover:bg-green-50"}`}
-                            onPress={() => toggleActivo(usuario)}
-                            isDisabled={usuario.rol === "admin"}
-                          >
-                            {usuario.activo ? <XCircle size={14} /> : <CheckCircle size={14} />}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8 px-2 text-red-600 hover:bg-red-50"
-                            onPress={() => eliminar(usuario)}
-                            isDisabled={usuario.rol === "admin"}
-                          >
-                            <Trash2 size={14} />
-                          </Button>
-                        </div>
-                      </td>
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Nombre</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Correo</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Rol</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Estado</th>
+                      <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Acciones</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {usuariosPaginados.map((usuario) => (
+                      <tr key={usuario.id} className="border-b border-slate-100 hover:bg-slate-50">
+                        <td className="px-4 py-3 font-medium text-slate-800">{usuario.nombre}</td>
+                        <td className="px-4 py-3 text-slate-600">{usuario.email}</td>
+                        <td className="px-4 py-3"><span className="bg-slate-100 text-slate-700 px-2 py-0.5 text-xs">{rolLabel[usuario.rol]}</span></td>
+                        <td className="px-4 py-3">
+                          <span className={`text-xs px-2 py-0.5 rounded ${usuario.activo ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                            {usuario.activo ? "Activo" : "Inactivo"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 px-2"
+                              onPress={() => setEditMode({ id: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol })}
+                            >
+                              <Edit2 size={14} />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className={`h-8 px-2 ${usuario.activo ? "text-amber-600 hover:bg-amber-50" : "text-green-600 hover:bg-green-50"}`}
+                              onPress={() => toggleActivo(usuario)}
+                              isDisabled={usuario.rol === "admin"}
+                            >
+                              {usuario.activo ? <XCircle size={14} /> : <CheckCircle size={14} />}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 px-2 text-red-600 hover:bg-red-50"
+                              onPress={() => eliminar(usuario)}
+                              isDisabled={usuario.rol === "admin"}
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={usuarios.length}
+                itemsPerPage={ITEMS_PER_PAGE}
+                onPageChange={setCurrentPage}
+              />
+            </>
           )}
         </div>
       </div>
