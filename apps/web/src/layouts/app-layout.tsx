@@ -52,7 +52,7 @@ export function AppLayout() {
   return (
     <div className="flex min-h-screen bg-app-bg">
       {/* Sidebar */}
-      <aside className="w-60 bg-primary flex flex-col flex-shrink-0">
+      <aside className="w-60 bg-primary flex flex-col flex-shrink-0 sticky top-0 h-screen overflow-y-auto">
         {/* Logo area */}
         <div className="px-4 py-5 border-b border-white/10">
           <div className="flex items-center gap-2">
@@ -114,7 +114,7 @@ export function AppLayout() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 min-w-0">
+      <main className="flex-1 min-w-0 overflow-y-auto">
         <Outlet />
       </main>
     </div>
