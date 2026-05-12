@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@heroui/react";
 import { Search, CheckCircle, Upload, Layers, Loader, Download } from "lucide-react";
+import { Pagination } from "@/components/pagination";
 
 interface ActividadPoa {
   id: string;
@@ -62,6 +63,8 @@ export function PoaPage() {
     fuente: "",
     verSoloConSaldo: false,
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
 
   useEffect(() => {
     const cargarPeriodos = async () => {
@@ -172,7 +175,7 @@ export function PoaPage() {
   };
 
   // Filtrar actividades
-  const filtradas = actividades.filter((a) => {
+  const filtradas = useMemo(() => actividades.filter((a) => {
     if (filtro.programa && a.programaCodigo !== filtro.programa) return false;
     if (filtro.actividad && a.actividadCodigo !== filtro.actividad) return false;
     if (filtro.item && a.itemCodigo !== filtro.item) return false;
@@ -189,7 +192,21 @@ export function PoaPage() {
       if (!match) return false;
     }
     return true;
-  });
+  }), [actividades, filtro]);
+
+  // Paginación
+  const actividadesPaginadas = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+    return filtradas.slice(start, end);
+  }, [filtradas, currentPage]);
+
+  const totalPages = Math.ceil(filtradas.length / ITEMS_PER_PAGE);
+
+  // Resetear página cuando cambian los filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filtro]);
 
   // Programas únicos para dropdowns
   const programas = [...new Map(actividades.map((a) => [a.programaCodigo, { codigo: a.programaCodigo, nombre: a.programaNombre }])).values()];
@@ -320,7 +337,7 @@ export function PoaPage() {
             </button>
           )}
           <span className="text-xs text-slate-500 ml-auto">
-            {filtradas.length} de {actividades.length} actividades
+            {actividadesPaginadas.length} de {filtradas.length} actividades
           </span>
         </div>
       </div>
@@ -391,31 +408,32 @@ export function PoaPage() {
             <p className="text-sm">No hay actividades que coincidan con los filtros</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Prog.</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Actividad</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Ítem</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Fuente</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Planificado</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Certificado</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Bloqueado</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Saldo</th>
-                  <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Estado</th>
-                  <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Acción</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtradas.map((a, idx) => {
-                  const saldo = Number(a.saldoDisponible);
-                  const pct = a.porcentajeDisponible ?? (Number(a.montoPlanificado) > 0 ? (saldo / Number(a.montoPlanificado)) * 100 : 0);
-                  let color = "text-green-600";
-                  if (a.estado === "agotado" || a.estado === "critico" || pct < 10) color = "text-red-600";
-                  else if (a.estado === "bajo" || pct < 30) color = "text-yellow-600";
-                  return (
-                    <tr key={a.id} className={`border-b border-slate-100 hover:bg-slate-50 ${idx % 2 === 0 ? "bg-white" : "bg-slate-50/30"}`}>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200">
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Prog.</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Actividad</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Ítem</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Fuente</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Planificado</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Certificado</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Bloqueado</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Saldo</th>
+                    <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Estado</th>
+                    <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Acción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {actividadesPaginadas.map((a, idx) => {
+                    const saldo = Number(a.saldoDisponible);
+                    const pct = a.porcentajeDisponible ?? (Number(a.montoPlanificado) > 0 ? (saldo / Number(a.montoPlanificado)) * 100 : 0);
+                    let color = "text-green-600";
+                    if (a.estado === "agotado" || a.estado === "critico" || pct < 10) color = "text-red-600";
+                    else if (a.estado === "bajo" || pct < 30) color = "text-yellow-600";
+                    return (
+                      <tr key={a.id} className={`border-b border-slate-100 hover:bg-slate-50 ${idx % 2 === 0 ? "bg-white" : "bg-slate-50/30"}`}>
                       <td className="px-4 py-3">
                         <span className="font-mono font-medium text-xs">{a.programaCodigo}</span>
                         <p className="text-xs text-slate-400 truncate max-w-[120px]">{a.programaNombre}</p>
@@ -479,7 +497,14 @@ export function PoaPage() {
               </tbody>
             </table>
           </div>
-        )}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filtradas.length}
+            itemsPerPage={ITEMS_PER_PAGE}
+            onPageChange={setCurrentPage}
+          />
+        </>
       </div>
     </div>
   );
