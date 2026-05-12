@@ -169,11 +169,18 @@ select {
   transition: border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
 }
 
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(19, 44, 65, 0.12) !important;
+  outline: none !important;
+}
+
 input:focus,
 textarea:focus,
 select:focus {
   border-color: var(--primary) !important;
-  box-shadow: 0 0 0 3px rgba(19, 44, 65, 0.12) !important;
 }
 
 input:disabled,
