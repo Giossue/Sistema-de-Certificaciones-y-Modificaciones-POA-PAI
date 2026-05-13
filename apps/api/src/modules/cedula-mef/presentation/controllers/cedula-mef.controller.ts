@@ -1,4 +1,4 @@
-import { Context, Hono } from "hono";
+import { Context } from "hono";
 import { PrismaClient } from "@prisma/client";
 import { ValidationError, NotFoundError } from "../../../../common/errors/http-error.map";
 import { ImportarCedulaMefUseCase } from "../../application/use-cases/importar-cedula-mef.usecase";
@@ -89,7 +89,10 @@ export class CedulaMefController {
     if (!periodoFiscalId || !isValidUUID(periodoFiscalId)) {
       throw new ValidationError("periodoFiscalId debe ser un UUID valido");
     }
-    const versiones = await listarVersionesUseCase.execute(periodoFiscalId);
+    const versiones = await listarVersionesUseCase.execute(periodoFiscalId, {
+      page: c.req.query("page") ? Number(c.req.query("page")) : undefined,
+      pageSize: c.req.query("pageSize") ? Number(c.req.query("pageSize")) : undefined,
+    });
     return c.json({ success: true, data: versiones });
   }
 
@@ -99,7 +102,7 @@ export class CedulaMefController {
       throw new ValidationError("versionId es requerido");
     }
     const page = parseInt(c.req.query("page") || "1");
-    const pageSize = parseInt(c.req.query("pageSize") || "50");
+    const pageSize = parseInt(c.req.query("pageSize") || "10");
     const filtro = c.req.query("filtro") || undefined;
 
     const resultado = await listarEntradasUseCase.execute({ versionId, page, pageSize, filtro });

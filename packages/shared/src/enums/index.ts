@@ -3,6 +3,8 @@ export enum RolUsuario {
   DIRECTOR = "director",
   ANALISTA = "analista",
   UNIDAD = "unidad",
+  FINANCIERO = "financiero",
+  BIENES = "bienes",
 }
 
 export enum EstadoCertificacion {

@@ -64,7 +64,19 @@ export class PoaRepositoryImpl implements PoaRepository {
       where: { periodoFiscalId, vigente: true },
     });
     if (!version) return null;
-    return this.getById(version.id);
+    const [totalActividades, total] = await Promise.all([
+      this.prisma.actividadesPoa.count({ where: { poaVersionId: version.id } }),
+      this.prisma.actividadesPoa.aggregate({
+        where: { poaVersionId: version.id },
+        _sum: { montoPlanificado: true },
+      }),
+    ]);
+    return {
+      ...version,
+      totalActividades,
+      montoTotal: Number(total._sum.montoPlanificado || 0),
+      actividades: [],
+    };
   }
 
   async getById(id: string): Promise<any> {

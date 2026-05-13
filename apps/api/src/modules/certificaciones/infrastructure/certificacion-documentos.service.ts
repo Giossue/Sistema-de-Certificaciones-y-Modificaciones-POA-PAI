@@ -5,6 +5,7 @@ import { env } from "../../../config/env";
 
 type CertificacionDocumentoData = {
   id: string;
+  tipo: string;
   numero: string;
   monto: string;
   conIva: boolean;
@@ -63,6 +64,7 @@ export class CertificacionDocumentosService {
     const template = await readFile(join(templateDir, templateName), "utf8");
     const values: Record<string, string> = {
       numero: data.numero,
+      tipo: data.tipo,
       fecha: data.fecha.toLocaleDateString("es-EC"),
       solicitanteNombre: data.solicitanteNombre,
       programaCodigo: data.programaCodigo,

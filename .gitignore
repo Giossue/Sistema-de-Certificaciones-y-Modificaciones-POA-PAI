@@ -37,3 +37,4 @@ Thumbs.db
 
 # Prisma
 prisma/migrations/*/migration.sql
+.gstack/

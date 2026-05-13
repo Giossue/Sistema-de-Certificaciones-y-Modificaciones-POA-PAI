@@ -13,8 +13,11 @@ export type CertificacionEstado =
 
 export interface CertificacionEntity {
   id: string;
+  tipo: string;
   numero: string | null;
   actividadId: string;
+  unidadRequirenteId: string | null;
+  poaVersionId: string | null;
   solicitanteId: string;
   analistaId: string | null;
   directorId: string | null;
@@ -23,6 +26,10 @@ export interface CertificacionEntity {
   estado: CertificacionEstado;
   observaciones: string | null;
   cedulaVersionId: string | null;
+  fechaSolicitud: Date;
+  fechaSuscripcion: Date | null;
+  fechaUso: Date | null;
+  devueltaPorFinanciero: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

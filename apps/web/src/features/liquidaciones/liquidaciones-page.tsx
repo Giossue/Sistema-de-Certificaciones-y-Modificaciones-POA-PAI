@@ -1,20 +1,21 @@
-import { useEffect, useState } from "react";
-import { Button } from "@heroui/react";
-import { DollarSign, Loader } from "lucide-react";
-
-interface Certificacion {
-  id: string;
-  numero: string | null;
-  estado: string;
-  monto: number;
-  actividad?: { itemCodigo: string; itemNombre: string } | null;
-}
-
-const money = (value: string | number) => Number(value).toLocaleString("es-EC", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+import { useCallback, useEffect, useState } from "react";
+import { InlineMessage, PageHeader } from "@/components/saas-layout";
+import { useAuth } from "@/features/auth/use-auth";
+import { LiquidacionForm } from "./components/liquidacion-form";
+import { LiquidacionesTable } from "./components/liquidaciones-table";
+import {
+  aprobarLiquidacion,
+  cargarCertificacionesLiquidacion,
+  crearLiquidacion,
+  listarLiquidaciones,
+  rechazarLiquidacion,
+} from "./services/liquidaciones-api";
+import type { Certificacion, Liquidacion } from "./types";
 
 export function LiquidacionesPage() {
+  const { user } = useAuth();
   const [certificaciones, setCertificaciones] = useState<Certificacion[]>([]);
-  const [liquidaciones, setLiquidaciones] = useState<any[]>([]);
+  const [liquidaciones, setLiquidaciones] = useState<Liquidacion[]>([]);
   const [certificacionId, setCertificacionId] = useState("");
   const [tipo, setTipo] = useState("total");
   const [modo, setModo] = useState("A");
@@ -22,87 +23,112 @@ export function LiquidacionesPage() {
   const [motivo, setMotivo] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalLiquidaciones, setTotalLiquidaciones] = useState(0);
   const token = localStorage.getItem("poa_token");
 
-  const cargar = async () => {
+  const cargar = useCallback(async () => {
     if (!token) return;
-    const [certsRes, liqsRes] = await Promise.all([
-      fetch("/api/v1/certificaciones", { headers: { Authorization: `Bearer ${token}` } }),
-      fetch("/api/v1/liquidaciones", { headers: { Authorization: `Bearer ${token}` } }),
+    const [certs, liquidacionesPayload] = await Promise.all([
+      cargarCertificacionesLiquidacion(),
+      listarLiquidaciones({ page: currentPage, pageSize }),
     ]);
-    if (certsRes.ok) setCertificaciones(((await certsRes.json()).data || []).filter((c: Certificacion) => ["suscrita", "en_uso"].includes(c.estado)));
-    if (liqsRes.ok) setLiquidaciones((await liqsRes.json()).data || []);
-  };
+    setCertificaciones(certs);
+    if (liquidacionesPayload) {
+      setLiquidaciones(liquidacionesPayload.items);
+      setTotalLiquidaciones(liquidacionesPayload.totalItems);
+    }
+  }, [currentPage, pageSize, token]);
 
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
+
+  const totalPages = Math.max(1, Math.ceil(totalLiquidaciones / pageSize));
 
   const enviar = async () => {
     if (!token) return;
     setLoading(true);
     setMessage("");
-    const res = await fetch("/api/v1/liquidaciones", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ certificacionId, tipo, modo, monto, motivo }),
+    const { res, data } = await crearLiquidacion({
+      certificacionId,
+      tipo,
+      modo,
+      monto,
+      motivo,
     });
-    const data = await res.json();
     setLoading(false);
     if (!res.ok) setMessage(data.error || "No se pudo liquidar");
     else {
-      setMessage("Liquidacion registrada");
+      setMessage("Liquidación solicitada");
       setMonto("");
       setMotivo("");
       await cargar();
     }
   };
 
+  const aprobar = async (id: string) => {
+    if (!token) return;
+    const { res, data } = await aprobarLiquidacion(id);
+    if (!res.ok) setMessage(data.error || "No se pudo aprobar");
+    else {
+      setMessage("Liquidación aprobada");
+      await cargar();
+    }
+  };
+
+  const rechazar = async (id: string) => {
+    if (!token) return;
+    const motivoRechazo = window.prompt("Motivo de rechazo");
+    if (!motivoRechazo) return;
+    const { res, data } = await rechazarLiquidacion(id, motivoRechazo);
+    if (!res.ok) setMessage(data.error || "No se pudo rechazar");
+    else {
+      setMessage("Liquidación rechazada");
+      await cargar();
+    }
+  };
+
+  const canApprove = ["admin", "director", "analista"].includes(
+    user?.rol || "",
+  );
+
   return (
     <div className="p-6">
-      <div className="mb-5">
-        <h1 className="text-2xl font-bold text-slate-800">Liquidaciones</h1>
-        <p className="text-sm text-slate-500 mt-1">Liberacion total o parcial de certificaciones</p>
-      </div>
-      {message && <div className="mb-4 bg-slate-50 border border-slate-200 p-3 text-sm text-slate-700">{message}</div>}
-      <div className="grid grid-cols-1 xl:grid-cols-[380px_1fr] gap-6">
-        <div className="bg-white shadow-sm p-4 space-y-3">
-          <h2 className="text-base font-semibold text-slate-700">Nueva liquidacion</h2>
-          <select value={certificacionId} onChange={(e) => setCertificacionId(e.target.value)} className="w-full px-3 py-2 border border-slate-300 text-sm">
-            <option value="">Seleccione certificacion</option>
-            {certificaciones.map((c) => <option key={c.id} value={c.id}>{c.numero} - ${money(c.monto)}</option>)}
-          </select>
-          <div className="grid grid-cols-2 gap-2">
-            <select value={tipo} onChange={(e) => setTipo(e.target.value)} className="px-3 py-2 border border-slate-300 text-sm">
-              <option value="total">Total</option>
-              <option value="parcial">Parcial</option>
-            </select>
-            <select value={modo} onChange={(e) => setModo(e.target.value)} className="px-3 py-2 border border-slate-300 text-sm">
-              <option value="A">Modo A</option>
-              <option value="B">Modo B</option>
-            </select>
-          </div>
-          <input value={monto} onChange={(e) => setMonto(e.target.value)} disabled={tipo === "total"} placeholder="Monto parcial" className="w-full px-3 py-2 border border-slate-300 text-sm disabled:bg-slate-50" />
-          <input value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Motivo" className="w-full px-3 py-2 border border-slate-300 text-sm" />
-          <Button onPress={enviar} isDisabled={!certificacionId || loading} className="w-full bg-primary text-white">
-            {loading ? <Loader size={16} className="animate-spin" /> : <DollarSign size={16} />}
-            Registrar liquidacion
-          </Button>
-        </div>
-        <div className="bg-white shadow-sm">
-          <div className="p-4 border-b border-slate-100"><h2 className="text-base font-semibold text-slate-700">Historial</h2></div>
-          <div className="divide-y divide-slate-100">
-            {liquidaciones.map((l) => (
-              <div key={l.id} className="p-4 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-800">{l.certificacion?.numero}</p>
-                  <p className="text-xs text-slate-500">{l.tipo} · modo {l.modo}</p>
-                </div>
-                <p className="font-semibold text-slate-800">${money(l.monto)}</p>
-              </div>
-            ))}
-            {liquidaciones.length === 0 && <div className="p-10 text-center text-slate-400">Sin liquidaciones</div>}
-          </div>
-        </div>
+      <PageHeader
+        title="Liquidaciones"
+        description="Solicitud y aprobación de liberación total o parcial de certificaciones"
+      />
+      {message && <InlineMessage>{message}</InlineMessage>}
+      <div className="space-y-6">
+        <LiquidacionForm
+          certificaciones={certificaciones}
+          certificacionId={certificacionId}
+          setCertificacionId={setCertificacionId}
+          tipo={tipo}
+          setTipo={setTipo}
+          modo={modo}
+          setModo={setModo}
+          monto={monto}
+          setMonto={setMonto}
+          motivo={motivo}
+          setMotivo={setMotivo}
+          loading={loading}
+          onEnviar={enviar}
+        />
+        <LiquidacionesTable
+          liquidaciones={liquidaciones}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalLiquidaciones={totalLiquidaciones}
+          pageSize={pageSize}
+          setCurrentPage={setCurrentPage}
+          setPageSize={setPageSize}
+          canApprove={canApprove}
+          onAprobar={aprobar}
+          onRechazar={rechazar}
+        />
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import { useAuth } from "@/features/auth/use-auth";
 import { hasRole, moduleRoles } from "@/features/auth/role-access";
 import {
   LayoutDashboard,
+  Inbox,
   FileSpreadsheet,
   CreditCard,
   GitBranch,
@@ -16,17 +17,48 @@ import {
   Layers,
 } from "lucide-react";
 
-const navItems = [
-  { path: "/", label: "Inicio", icon: LayoutDashboard, roles: moduleRoles.inicio },
-  { path: "/poa", label: "POA", icon: Layers, roles: moduleRoles.poa },
-  { path: "/cedula-mef", label: "Cedula MEF", icon: FileSpreadsheet, roles: moduleRoles.cedulaMef },
-  { path: "/certificaciones", label: "Certificaciones", icon: CreditCard, roles: moduleRoles.certificaciones },
-  { path: "/modificaciones-poa", label: "Modificaciones POA", icon: GitBranch, roles: moduleRoles.modificacionesPoa },
-  { path: "/liquidaciones", label: "Liquidaciones", icon: DollarSign, roles: moduleRoles.liquidaciones },
-  { path: "/anulaciones", label: "Anulaciones", icon: Ban, roles: moduleRoles.anulaciones },
-  { path: "/reportes", label: "Reportes", icon: BarChart2, roles: moduleRoles.reportes },
-  { path: "/usuarios", label: "Usuarios", icon: Users, roles: moduleRoles.usuarios },
+const navGroups = [
+  {
+    key: "principal",
+    label: "Principal",
+    items: [
+      { path: "/", label: "Inicio", icon: LayoutDashboard, roles: moduleRoles.inicio },
+      { path: "/tramites", label: "Bandeja de Trámites", icon: Inbox, roles: moduleRoles.tramites },
+    ],
+  },
+  {
+    key: "planificacion",
+    label: "Planificación",
+    items: [
+      { path: "/poa", label: "POA", icon: Layers, roles: moduleRoles.poa },
+      { path: "/cedula-mef", label: "Cédula MEF", icon: FileSpreadsheet, roles: moduleRoles.cedulaMef },
+      { path: "/modificaciones-poa", label: "Modificaciones POA", icon: GitBranch, roles: moduleRoles.modificacionesPoa },
+    ],
+  },
+  {
+    key: "ejecucion",
+    label: "Ejecución",
+    items: [
+      { path: "/certificaciones", label: "Certificaciones", icon: CreditCard, roles: moduleRoles.certificaciones },
+      { path: "/liquidaciones", label: "Liquidaciones", icon: DollarSign, roles: moduleRoles.liquidaciones },
+      { path: "/anulaciones", label: "Anulaciones", icon: Ban, roles: moduleRoles.anulaciones },
+    ],
+  },
+  {
+    key: "gestion",
+    label: "Gestión",
+    items: [
+      { path: "/reportes", label: "Reportes", icon: BarChart2, roles: moduleRoles.reportes },
+      { path: "/usuarios", label: "Usuarios", icon: Users, roles: moduleRoles.usuarios },
+    ],
+  },
 ];
+
+const navItems = navGroups.flatMap((group) => group.items);
+
+function isPathActive(currentPath: string, path: string) {
+  return path === "/" ? currentPath === "/" : currentPath.startsWith(path);
+}
 
 export function AppLayout() {
   const { user, loading, logout } = useAuth();
@@ -50,47 +82,76 @@ export function AppLayout() {
   if (!user) return null;
 
   return (
-    <div className="flex min-h-screen bg-app-bg">
+    <div className="flex min-h-screen min-w-0 flex-col bg-app-bg md:flex-row">
       {/* Sidebar */}
-      <aside className="w-60 bg-primary flex flex-col flex-shrink-0 sticky top-0 h-screen overflow-y-auto">
+      <aside className="app-sidebar sticky top-0 z-20 flex h-auto w-full flex-shrink-0 flex-col overflow-hidden bg-primary md:h-screen md:w-60 md:overflow-y-auto">
         {/* Logo area */}
-        <div className="px-4 py-5 border-b border-white/10">
+        <div className="px-4 py-4 border-b border-white/10 md:py-5">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-white flex items-center justify-center flex-shrink-0">
               <span className="text-primary font-bold text-xs">POA</span>
             </div>
             <div>
               <p className="text-white text-sm font-semibold leading-tight">Sistema POA/PAI</p>
-              <p className="text-white/60 text-xs">Universidad Estatal de Bolivar</p>
+              <p className="text-white/60 text-xs">Universidad Estatal de Bolívar</p>
             </div>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 py-4 px-2">
+        <nav className="flex gap-1 overflow-x-auto px-2 py-2 md:hidden">
           {navItems.filter((item) => hasRole(user.rol, item.roles)).map(({ path, label, icon: Icon }) => {
-            const isActive = path === "/"
-              ? location.pathname === "/"
-              : location.pathname.startsWith(path);
+            const isActive = isPathActive(location.pathname, path);
             return (
               <Link
                 key={path}
                 to={path}
-                className={`flex items-center gap-3 px-3 py-2.5 text-sm transition-colors ${
+                className={`flex shrink-0 items-center gap-2 px-3 py-2.5 text-sm transition-colors ${
                   isActive
                     ? "bg-white/15 text-white"
                     : "text-white/70 hover:bg-white/10 hover:text-white"
                 }`}
               >
                 <Icon size={18} />
-                <span>{label}</span>
+                <span className="whitespace-nowrap">{label}</span>
               </Link>
+            );
+          })}
+        </nav>
+        <nav className="hidden flex-1 overflow-y-auto px-2 py-3 md:block">
+          {navGroups.map((group) => {
+            const visibleItems = group.items.filter((item) => hasRole(user.rol, item.roles));
+            if (visibleItems.length === 0) return null;
+
+            return (
+              <div key={group.key} className="mb-2">
+                <p className="px-3 py-2 text-[11px] font-semibold uppercase text-white/45">{group.label}</p>
+                <div className="space-y-1">
+                  {visibleItems.map(({ path, label, icon: Icon }) => {
+                    const isActive = isPathActive(location.pathname, path);
+                    return (
+                      <Link
+                        key={path}
+                        to={path}
+                        className={`flex items-center gap-3 px-3 py-2.5 text-sm transition-colors ${
+                          isActive
+                            ? "bg-white/15 text-white"
+                            : "text-white/70 hover:bg-white/10 hover:text-white"
+                        }`}
+                      >
+                        <Icon size={17} />
+                        <span className="min-w-0 truncate">{label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
             );
           })}
         </nav>
 
         {/* User info at bottom */}
-        <div className="px-3 py-4 border-t border-white/10">
+        <div className="hidden px-3 py-4 border-t border-white/10 md:block">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-8 h-8 bg-white/20 flex items-center justify-center flex-shrink-0">
               <span className="text-white font-bold text-xs">
@@ -108,13 +169,13 @@ export function AppLayout() {
             onPress={logout}
           >
             <LogOut size={15} />
-            Cerrar sesion
+            Cerrar sesión
           </Button>
         </div>
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 min-w-0 overflow-y-auto">
+      <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
         <Outlet />
       </main>
     </div>

@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import { AppLayout } from "./layouts/app-layout";
 import { LoginPage } from "./features/auth/login-page";
 import { DashboardPage } from "./features/dashboard/dashboard-page";
+import { TramitesPage } from "./features/tramites/tramites-page";
 import { CedulaMefPage } from "./features/cedula-mef/cedula-mef-page";
 import { NuevaCertificacionPage } from "./features/certificacion/nueva-certificacion-page";
 import { PoaPage } from "./features/poa/poa-page";
@@ -19,6 +20,7 @@ function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/" element={<AppLayout />}>
         <Route index element={<DashboardPage />} />
+        <Route path="tramites" element={<RequireRole allowedRoles={moduleRoles.tramites}><TramitesPage /></RequireRole>} />
         <Route path="poa" element={<RequireRole allowedRoles={moduleRoles.poa}><PoaPage /></RequireRole>} />
         <Route path="cedula-mef" element={<RequireRole allowedRoles={moduleRoles.cedulaMef}><CedulaMefPage /></RequireRole>} />
         <Route path="certificaciones" element={<RequireRole allowedRoles={moduleRoles.certificaciones}><NuevaCertificacionPage /></RequireRole>} />

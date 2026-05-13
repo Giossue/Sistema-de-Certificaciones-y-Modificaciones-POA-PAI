@@ -9,6 +9,8 @@ rolesRoutes.get("/", requirePermission("roles.ver"), (c) => {
     { value: "director", label: "Director" },
     { value: "analista", label: "Analista" },
     { value: "unidad", label: "Unidad Requirente" },
+    { value: "financiero", label: "Coordinación Financiera" },
+    { value: "bienes", label: "Área de Bienes" },
   ]);
 });
 

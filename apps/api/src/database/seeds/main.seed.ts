@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { seedUsuarios } from "./usuarios.seed";
 import { seedCatalogos } from "./catalogos.seed";
 import { seedPeriodos } from "./periodos.seed";
+import { seedInstitucional } from "./institucional.seed";
 
 const prisma = new PrismaClient();
 
@@ -10,6 +11,7 @@ async function main() {
   await seedUsuarios();
   await seedCatalogos();
   await seedPeriodos();
+  await seedInstitucional();
   console.log("🌱 Seeds completados");
 }
 

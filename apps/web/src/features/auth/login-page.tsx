@@ -16,74 +16,60 @@ export function LoginPage() {
     try {
       await login(email, password);
     } catch (err: any) {
-      setError(err.message || "Error al iniciar sesion");
+      setError(err.message || "Error al iniciar sesión");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-primary px-4">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <img
-            src="/assets/logo.png"
-            alt="Logo"
-            className="inline-block w-20 h-20 object-contain mb-4"
-          />
-          <h1 className="text-2xl font-bold text-white">Sistema POA/PAI</h1>
-          <p className="text-sm text-white/70 mt-1">Universidad Estatal de Bolivar</p>
+    <div className="auth-page">
+      <div className="auth-shell">
+        <div className="auth-brand">
+          <img src="/assets/logo.png" alt="Logo" className="auth-logo" />
+          <h1 className="auth-title">Sistema POA/PAI</h1>
+          <p className="auth-subtitle">Universidad Estatal de Bolívar</p>
         </div>
 
-        <Card className="bg-white">
+        <Card className="auth-card">
           <CardContent className="p-6">
-            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            <form onSubmit={handleSubmit} className="auth-form">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  Correo electronico
-                </label>
+                <label className="app-field-label">Correo electrónico</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   autoFocus
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-primary transition-colors"
+                  className="app-field-input"
                   placeholder="correo@institucion.edu.ec"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  Contraseña
-                </label>
+                <label className="app-field-label">Contraseña</label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-primary transition-colors"
+                  className="app-field-input"
                   placeholder="********"
                 />
               </div>
-              {error && (
-                <p className="text-sm text-danger bg-danger-soft border border-red-200 rounded-md px-3 py-2">
-                  {error}
-                </p>
-              )}
+              {error && <p className="app-error-message">{error}</p>}
               <Button
                 type="submit"
-                className="w-full bg-primary text-white font-medium py-2.5 rounded-md transition-colors"
+                className="app-submit-button"
                 isDisabled={loading}
               >
-                {loading ? <Spinner size="sm" className="text-white" /> : "Iniciar sesion"}
+                {loading ? <Spinner size="sm" /> : "Iniciar sesión"}
               </Button>
             </form>
           </CardContent>
         </Card>
 
-        <p className="text-center text-white/70 text-xs mt-6">
-          Direccion de Planificacion y Estrategica
-        </p>
+        <p className="auth-footer">Dirección de Planificación Estratégica</p>
       </div>
     </div>
   );

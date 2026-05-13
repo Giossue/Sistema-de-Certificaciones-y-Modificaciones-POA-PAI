@@ -12,6 +12,8 @@ enum Rol {
   director
   analista
   unidad
+  financiero
+  bienes
 }
 
 model Usuario {
@@ -116,6 +118,8 @@ model ActividadesPoa {
   id               String   @id @default(uuid()) @db.Uuid
   poaVersionId     String   @map("poa_version_id") @db.Uuid
   unidadId         String?  @map("unidad_id") @db.Uuid
+  responsableUsuarioId String? @map("responsable_usuario_id") @db.Uuid
+  responsableNombre String? @map("responsable_nombre")
   programaCodigo   String   @map("programa_codigo")
   programaNombre   String   @map("programa_nombre")
   actividadCodigo  String   @map("actividad_codigo")
@@ -147,6 +151,8 @@ model ModificacionPoa {
   estado                   String
   motivo                   String
   observaciones            String?
+  observacionBienes        String?  @map("observacion_bienes")
+  tipoDiscrepancia         String?  @map("tipo_discrepancia")
   programaCodigoAnterior   String   @map("programa_codigo_anterior")
   programaNombreAnterior   String   @map("programa_nombre_anterior")
   actividadCodigoAnterior  String   @map("actividad_codigo_anterior")
@@ -155,6 +161,8 @@ model ModificacionPoa {
   itemNombreAnterior       String   @map("item_nombre_anterior")
   fuenteCodigo             String   @map("fuente_codigo")
   fuenteNombre             String   @map("fuente_nombre")
+  responsableAnteriorId    String?  @map("responsable_anterior_id") @db.Uuid
+  responsableAnteriorNombre String? @map("responsable_anterior_nombre")
   montoPlanificadoAnterior Decimal  @map("monto_planificado_anterior") @db.Decimal(18, 2)
   programaCodigoNuevo      String   @map("programa_codigo_nuevo")
   programaNombreNuevo      String   @map("programa_nombre_nuevo")
@@ -162,6 +170,8 @@ model ModificacionPoa {
   actividadNombreNuevo     String   @map("actividad_nombre_nuevo")
   itemCodigoNuevo          String   @map("item_codigo_nuevo")
   itemNombreNuevo          String   @map("item_nombre_nuevo")
+  responsableNuevoId       String?  @map("responsable_nuevo_id") @db.Uuid
+  responsableNuevoNombre   String?  @map("responsable_nuevo_nombre")
   montoPlanificadoNuevo    Decimal  @map("monto_planificado_nuevo") @db.Decimal(18, 2)
   informeRuta              String?  @map("informe_ruta")
   nuevaPoaVersionId        String?  @map("nueva_poa_version_id") @db.Uuid
@@ -182,8 +192,11 @@ model ModificacionPoa {
 
 model Certificacion {
   id              String   @id @default(uuid()) @db.Uuid
+  tipo            String   @default("POA")
   numero          String?  @unique
   actividadId     String   @map("actividad_id") @db.Uuid
+  unidadRequirenteId String? @map("unidad_requirente_id") @db.Uuid
+  poaVersionId    String?  @map("poa_version_id") @db.Uuid
   solicitanteId   String   @map("solicitante_id") @db.Uuid
   analistaId      String?  @map("analista_id") @db.Uuid
   directorId      String?  @map("director_id") @db.Uuid
@@ -192,6 +205,10 @@ model Certificacion {
   estado          String
   observaciones   String?
   cedulaVersionId String?  @map("cedula_version_id") @db.Uuid
+  fechaSolicitud  DateTime @default(now()) @map("fecha_solicitud")
+  fechaSuscripcion DateTime? @map("fecha_suscripcion")
+  fechaUso        DateTime? @map("fecha_uso")
+  devueltaPorFinanciero Boolean @default(false) @map("devuelta_por_financiero")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
@@ -206,6 +223,8 @@ model Certificacion {
   devoluciones  DevolucionFinanciero[]
 
   @@index([actividadId, estado])
+  @@index([tipo, numero])
+  @@index([unidadRequirenteId, estado])
   @@map("certificaciones")
 }
 
@@ -213,10 +232,14 @@ model LiquidacionCertificacion {
   id              String   @id @default(uuid()) @db.Uuid
   certificacionId String   @map("certificacion_id") @db.Uuid
   usuarioId       String   @map("usuario_id") @db.Uuid
+  aprobadaPorId   String?  @map("aprobada_por_id") @db.Uuid
   tipo            String
   modo            String
   monto           Decimal  @db.Decimal(18, 2)
+  estado          String   @default("solicitada")
   motivo          String?
+  motivoRechazo   String?  @map("motivo_rechazo")
+  approvedAt      DateTime? @map("approved_at")
   createdAt       DateTime @default(now()) @map("created_at")
 
   certificacion Certificacion @relation(fields: [certificacionId], references: [id])
@@ -230,8 +253,12 @@ model AnulacionCertificacion {
   id              String   @id @default(uuid()) @db.Uuid
   certificacionId String   @unique @map("certificacion_id") @db.Uuid
   usuarioId       String   @map("usuario_id") @db.Uuid
+  aprobadaPorId   String?  @map("aprobada_por_id") @db.Uuid
   motivo          String
+  estado          String   @default("solicitada")
+  motivoRechazo   String?  @map("motivo_rechazo")
   montoLiberado   Decimal  @map("monto_liberado") @db.Decimal(18, 2)
+  approvedAt      DateTime? @map("approved_at")
   createdAt       DateTime @default(now()) @map("created_at")
 
   certificacion Certificacion @relation(fields: [certificacionId], references: [id])
@@ -246,7 +273,10 @@ model DevolucionFinanciero {
   usuarioId          String   @map("usuario_id") @db.Uuid
   causa              String
   descripcion        String
+  clasificacion      String?
   reglaAsociada      String?  @map("regla_asociada")
+  estadoCorreccion   String   @default("pendiente") @map("estado_correccion")
+  reenviadaEn        DateTime? @map("reenviada_en")
   cubiertaPorSistema Boolean  @default(false) @map("cubierta_por_sistema")
   improcedente       Boolean  @default(false)
   createdAt          DateTime @default(now()) @map("created_at")
@@ -266,6 +296,11 @@ model DocumentoHabilitante {
   nombreOriginal  String   @map("nombre_original")
   tamano          Int
   mimeType        String   @map("mime_type")
+  plantilla       String?
+  versionPlantilla String? @map("version_plantilla")
+  entidadOrigen   String?  @map("entidad_origen")
+  entidadOrigenId String?  @map("entidad_origen_id")
+  hashDocumento   String?  @map("hash_documento")
   createdAt       DateTime @default(now()) @map("created_at")
 
   certificacion Certificacion @relation(fields: [certificacionId], references: [id])
@@ -276,12 +311,17 @@ model DocumentoHabilitante {
 model Auditoria {
   id             String   @id @default(uuid()) @db.Uuid
   usuarioId      String   @map("usuario_id") @db.Uuid
+  rol            String?
   entidad        String
   entidadId      String   @map("entidad_id")
   accion         String
   estadoAnterior String?  @map("estado_anterior")
   estadoNuevo    String?  @map("estado_nuevo")
+  payloadAnterior Json?   @map("payload_anterior")
+  payloadNuevo    Json?   @map("payload_nuevo")
   motivo         String?
+  ip             String?
+  userAgent      String?  @map("user_agent")
   createdAt      DateTime @default(now()) @map("created_at")
 
   usuario Usuario @relation(fields: [usuarioId], references: [id])

@@ -9,7 +9,7 @@ export class ListarCedulaEntradasUseCase {
     pageSize?: number;
     filtro?: string;
   }) {
-    const { versionId, page = 1, pageSize = 50, filtro } = params;
+    const { versionId, page = 1, pageSize = 10, filtro } = params;
 
     const where: any = { versionId };
 

@@ -22,7 +22,9 @@ export function useAuth() {
     }
 
     api
-      .get<{ id: string; email: string; nombre: string; rol: string }>("/auth/me")
+      .get<{ id: string; email: string; nombre: string; rol: string }>(
+        "/auth/me",
+      )
       .then((data) => {
         setUser(data);
       })
@@ -37,10 +39,13 @@ export function useAuth() {
   const login = useCallback(
     async (email: string, password: string) => {
       try {
-        const res = await api.post<{ token: string; usuario: AuthUser }>("/auth/login", {
-          email,
-          password,
-        });
+        const res = await api.post<{ token: string; usuario: AuthUser }>(
+          "/auth/login",
+          {
+            email,
+            password,
+          },
+        );
         localStorage.setItem("poa_token", res.token);
         setUser(res.usuario);
         navigate("/");
@@ -50,7 +55,7 @@ export function useAuth() {
         throw err;
       }
     },
-    [navigate]
+    [navigate],
   );
 
   const logout = useCallback(() => {

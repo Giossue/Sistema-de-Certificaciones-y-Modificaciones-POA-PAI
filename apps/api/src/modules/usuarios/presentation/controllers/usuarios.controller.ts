@@ -12,6 +12,21 @@ const prisma = new PrismaClient();
 
 export class UsuariosController {
   static async listar(c: Context) {
+    const pageQuery = c.req.query("page");
+    const pageSizeQuery = c.req.query("pageSize");
+    if (pageQuery || pageSizeQuery) {
+      const page = Math.max(1, Number(pageQuery || 1));
+      const pageSize = Math.min(200, Math.max(1, Number(pageSizeQuery || 10)));
+      const [totalItems, usuarios] = await Promise.all([
+        prisma.usuario.count(),
+        prisma.usuario.findMany({
+          orderBy: { createdAt: "desc" },
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+        }),
+      ]);
+      return c.json({ items: usuarios, totalItems, page, pageSize, totalPages: Math.max(1, Math.ceil(totalItems / pageSize)) });
+    }
     const usecase = new ListarUsuariosUsecase(prisma);
     const usuarios = await usecase.execute();
     return c.json(usuarios);

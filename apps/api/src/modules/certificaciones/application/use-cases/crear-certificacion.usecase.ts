@@ -5,6 +5,7 @@ import { decimalToCentavos } from "../../../saldos/domain/saldo-calculator";
 import { SaldosMotorService } from "../../../saldos/application/use-cases/saldos-motor.service";
 
 interface CrearCertificacionDto {
+  tipo: string;
   periodoFiscalId: string;
   programaCodigo: string;
   actividadCodigo: string;
@@ -23,6 +24,11 @@ export class CrearCertificacionUseCase {
   }
 
   async execute(dto: CrearCertificacionDto): Promise<CertificacionEntity> {
+    const tipo = String(dto.tipo || "").toUpperCase();
+    if (!["POA", "PAI"].includes(tipo)) {
+      throw new ValidationError("tipo debe ser POA o PAI");
+    }
+
     const montoDecimal = this.normalizarMonto(dto.monto);
     if (!montoDecimal || decimalToCentavos(montoDecimal) <= 0n) {
       throw new ValidationError("monto debe ser mayor a 0");
@@ -50,21 +56,22 @@ export class CrearCertificacionUseCase {
     const cedulaVersion = await this.prisma.cedulaMefVersion.findFirst({
       where: { periodoFiscalId: dto.periodoFiscalId, vigente: true },
     });
+    if (!cedulaVersion) {
+      throw new ValidationError("No existe cédula MEF vigente para validar la solicitud");
+    }
 
     // 4. Validar que la combinación exista en cédula MEF vigente (RN-04)
-    if (cedulaVersion) {
-      const existeEnCedula = await this.prisma.cedulaMefEntrada.findFirst({
-        where: {
-          versionId: cedulaVersion.id,
-          programaCodigo: actividad.programaCodigo,
-          actividadCodigo: actividad.actividadCodigo,
-          itemCodigo: actividad.itemCodigo,
-          fuenteCodigo: actividad.fuenteCodigo,
-        },
-      });
-      if (!existeEnCedula) {
-        throw new ValidationError("La combinación programa+actividad+ítem+fuente no existe en la cédula MEF vigente");
-      }
+    const existeEnCedula = await this.prisma.cedulaMefEntrada.findFirst({
+      where: {
+        versionId: cedulaVersion.id,
+        programaCodigo: actividad.programaCodigo,
+        actividadCodigo: actividad.actividadCodigo,
+        itemCodigo: actividad.itemCodigo,
+        fuenteCodigo: actividad.fuenteCodigo,
+      },
+    });
+    if (!existeEnCedula) {
+      throw new ValidationError("La combinación programa+actividad+ítem+fuente no existe en la cédula MEF vigente");
     }
 
     // 5. Validar saldo suficiente (RN-05)
@@ -85,19 +92,25 @@ export class CrearCertificacionUseCase {
     // 7. Crear la certificación en estado solicitada
     const cert = await this.prisma.certificacion.create({
       data: {
+        tipo,
         actividadId: actividad.id,
+        unidadRequirenteId: actividad.unidadId || dto.solicitanteId,
+        poaVersionId: actividad.poaVersionId,
         solicitanteId: dto.solicitanteId,
         monto: montoDecimal,
         conIva: dto.conIva,
         estado: "solicitada",
-        cedulaVersionId: cedulaVersion?.id || null,
+        cedulaVersionId: cedulaVersion.id,
       },
     });
 
     return {
       id: cert.id,
+      tipo: cert.tipo,
       numero: cert.numero,
       actividadId: cert.actividadId,
+      unidadRequirenteId: cert.unidadRequirenteId,
+      poaVersionId: cert.poaVersionId,
       solicitanteId: cert.solicitanteId,
       analistaId: cert.analistaId,
       directorId: cert.directorId,
@@ -106,6 +119,10 @@ export class CrearCertificacionUseCase {
       estado: cert.estado as CertificacionEstado,
       observaciones: cert.observaciones,
       cedulaVersionId: cert.cedulaVersionId,
+      fechaSolicitud: cert.fechaSolicitud,
+      fechaSuscripcion: cert.fechaSuscripcion,
+      fechaUso: cert.fechaUso,
+      devueltaPorFinanciero: cert.devueltaPorFinanciero,
       createdAt: cert.createdAt,
       updatedAt: cert.updatedAt,
     };

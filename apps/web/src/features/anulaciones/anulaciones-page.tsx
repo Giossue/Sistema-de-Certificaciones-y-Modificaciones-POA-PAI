@@ -1,91 +1,116 @@
-import { useEffect, useState } from "react";
-import { Button } from "@heroui/react";
-import { Ban, Loader } from "lucide-react";
-
-interface Certificacion {
-  id: string;
-  numero: string | null;
-  estado: string;
-  monto: number;
-}
-
-const money = (value: string | number) => Number(value).toLocaleString("es-EC", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+import { useCallback, useEffect, useState } from "react";
+import { InlineMessage, PageHeader } from "@/components/saas-layout";
+import { useAuth } from "@/features/auth/use-auth";
+import { AnulacionForm } from "./components/anulacion-form";
+import { AnulacionesTable } from "./components/anulaciones-table";
+import {
+  aprobarAnulacion,
+  cargarCertificacionesAnulacion,
+  crearAnulacion,
+  listarAnulaciones,
+  rechazarAnulacion,
+} from "./services/anulaciones-api";
+import type { Anulacion, Certificacion } from "./types";
 
 export function AnulacionesPage() {
+  const { user } = useAuth();
   const [certificaciones, setCertificaciones] = useState<Certificacion[]>([]);
-  const [anulaciones, setAnulaciones] = useState<any[]>([]);
+  const [anulaciones, setAnulaciones] = useState<Anulacion[]>([]);
   const [certificacionId, setCertificacionId] = useState("");
   const [motivo, setMotivo] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const token = localStorage.getItem("poa_token");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalAnulaciones, setTotalAnulaciones] = useState(0);
 
-  const cargar = async () => {
+  const cargar = useCallback(async () => {
     if (!token) return;
-    const [certsRes, anulRes] = await Promise.all([
-      fetch("/api/v1/certificaciones", { headers: { Authorization: `Bearer ${token}` } }),
-      fetch("/api/v1/anulaciones", { headers: { Authorization: `Bearer ${token}` } }),
+    const [certs, anulacionesPayload] = await Promise.all([
+      cargarCertificacionesAnulacion(),
+      listarAnulaciones({ page: currentPage, pageSize }),
     ]);
-    if (certsRes.ok) setCertificaciones(((await certsRes.json()).data || []).filter((c: Certificacion) => ["generada", "suscrita"].includes(c.estado)));
-    if (anulRes.ok) setAnulaciones((await anulRes.json()).data || []);
-  };
+    setCertificaciones(certs);
+    if (anulacionesPayload) {
+      setAnulaciones(anulacionesPayload.items);
+      setTotalAnulaciones(anulacionesPayload.totalItems);
+    }
+  }, [currentPage, pageSize, token]);
 
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
+
+  const totalPages = Math.max(1, Math.ceil(totalAnulaciones / pageSize));
 
   const enviar = async () => {
     if (!token) return;
     setLoading(true);
     setMessage("");
-    const res = await fetch("/api/v1/anulaciones", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ certificacionId, motivo }),
-    });
-    const data = await res.json();
+    const { res, data } = await crearAnulacion({ certificacionId, motivo });
     setLoading(false);
     if (!res.ok) setMessage(data.error || "No se pudo anular");
     else {
-      setMessage("Certificacion anulada");
+      setMessage("Anulación solicitada");
       setMotivo("");
       await cargar();
     }
   };
 
+  const aprobar = async (id: string) => {
+    if (!token) return;
+    const { res, data } = await aprobarAnulacion(id);
+    if (!res.ok) setMessage(data.error || "No se pudo aprobar");
+    else {
+      setMessage("Anulación aprobada");
+      await cargar();
+    }
+  };
+
+  const rechazar = async (id: string) => {
+    if (!token) return;
+    const motivoRechazo = window.prompt("Motivo de rechazo");
+    if (!motivoRechazo) return;
+    const { res, data } = await rechazarAnulacion(id, motivoRechazo);
+    if (!res.ok) setMessage(data.error || "No se pudo rechazar");
+    else {
+      setMessage("Anulación rechazada");
+      await cargar();
+    }
+  };
+
+  const canApprove = ["admin", "director"].includes(user?.rol || "");
+
   return (
     <div className="p-6">
-      <div className="mb-5">
-        <h1 className="text-2xl font-bold text-slate-800">Anulaciones</h1>
-        <p className="text-sm text-slate-500 mt-1">Cancelacion de certificaciones sin uso</p>
-      </div>
-      {message && <div className="mb-4 bg-slate-50 border border-slate-200 p-3 text-sm text-slate-700">{message}</div>}
-      <div className="grid grid-cols-1 xl:grid-cols-[380px_1fr] gap-6">
-        <div className="bg-white shadow-sm p-4 space-y-3">
-          <h2 className="text-base font-semibold text-slate-700">Nueva anulacion</h2>
-          <select value={certificacionId} onChange={(e) => setCertificacionId(e.target.value)} className="w-full px-3 py-2 border border-slate-300 text-sm">
-            <option value="">Seleccione certificacion</option>
-            {certificaciones.map((c) => <option key={c.id} value={c.id}>{c.numero} - ${money(c.monto)}</option>)}
-          </select>
-          <textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Motivo obligatorio" className="w-full px-3 py-2 border border-slate-300 text-sm min-h-24" />
-          <Button onPress={enviar} isDisabled={!certificacionId || !motivo || loading} className="w-full bg-primary text-white">
-            {loading ? <Loader size={16} className="animate-spin" /> : <Ban size={16} />}
-            Anular certificacion
-          </Button>
-        </div>
-        <div className="bg-white shadow-sm">
-          <div className="p-4 border-b border-slate-100"><h2 className="text-base font-semibold text-slate-700">Historial</h2></div>
-          <div className="divide-y divide-slate-100">
-            {anulaciones.map((a) => (
-              <div key={a.id} className="p-4 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-800">{a.certificacion?.numero}</p>
-                  <p className="text-xs text-slate-500">{a.motivo}</p>
-                </div>
-                <p className="font-semibold text-slate-800">${money(a.montoLiberado)}</p>
-              </div>
-            ))}
-            {anulaciones.length === 0 && <div className="p-10 text-center text-slate-400">Sin anulaciones</div>}
-          </div>
-        </div>
+      <PageHeader
+        title="Anulaciones"
+        description="Solicitud y aprobación de cancelación de certificaciones sin uso"
+      />
+      {message && <InlineMessage>{message}</InlineMessage>}
+      <div className="space-y-6">
+        <AnulacionForm
+          certificaciones={certificaciones}
+          certificacionId={certificacionId}
+          setCertificacionId={setCertificacionId}
+          motivo={motivo}
+          setMotivo={setMotivo}
+          loading={loading}
+          onEnviar={enviar}
+        />
+        <AnulacionesTable
+          anulaciones={anulaciones}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalAnulaciones={totalAnulaciones}
+          pageSize={pageSize}
+          setCurrentPage={setCurrentPage}
+          setPageSize={setPageSize}
+          canApprove={canApprove}
+          onAprobar={aprobar}
+          onRechazar={rechazar}
+        />
       </div>
     </div>
   );

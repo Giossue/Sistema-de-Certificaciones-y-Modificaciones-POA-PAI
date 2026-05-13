@@ -21,16 +21,20 @@ export type Permission =
   | "certificacion.aprobar"
   | "certificacion.observar"
   | "certificacion.suscribir"
+  | "certificacion.marcar_uso"
   | "modificacion.crear"
   | "modificacion.ver"
   | "modificacion.observar"
   | "modificacion.suscribir"
   | "modificacion.aprobar"
   | "liquidacion.crear"
+  | "liquidacion.aprobar"
   | "liquidacion.ver"
   | "anulacion.crear"
+  | "anulacion.aprobar"
   | "anulacion.ver"
   | "devolucion.crear"
+  | "devolucion.clasificar"
   | "devolucion.ver"
   | "reporte.ver";
 
@@ -53,16 +57,20 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "certificacion.aprobar",
     "certificacion.observar",
     "certificacion.suscribir",
+    "certificacion.marcar_uso",
     "modificacion.crear",
     "modificacion.ver",
     "modificacion.observar",
     "modificacion.suscribir",
     "modificacion.aprobar",
     "liquidacion.crear",
+    "liquidacion.aprobar",
     "liquidacion.ver",
     "anulacion.crear",
+    "anulacion.aprobar",
     "anulacion.ver",
     "devolucion.crear",
+    "devolucion.clasificar",
     "devolucion.ver",
     "reporte.ver",
   ],
@@ -78,15 +86,19 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "certificacion.ver",
     "certificacion.observar",
     "certificacion.suscribir",
+    "certificacion.marcar_uso",
     "modificacion.ver",
     "modificacion.observar",
     "modificacion.suscribir",
     "modificacion.aprobar",
     "liquidacion.crear",
+    "liquidacion.aprobar",
     "liquidacion.ver",
     "anulacion.crear",
+    "anulacion.aprobar",
     "anulacion.ver",
     "devolucion.crear",
+    "devolucion.clasificar",
     "devolucion.ver",
     "reporte.ver",
   ],
@@ -106,8 +118,11 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "modificacion.ver",
     "modificacion.observar",
     "modificacion.aprobar",
+    "liquidacion.aprobar",
     "liquidacion.ver",
+    "anulacion.aprobar",
     "anulacion.ver",
+    "devolucion.clasificar",
     "devolucion.ver",
     "reporte.ver",
   ],
@@ -129,7 +144,38 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "devolucion.crear",
     "devolucion.ver",
   ],
+  financiero: [
+    "catalogos.ver",
+    "periodos.ver",
+    "cedula.ver",
+    "poa.ver",
+    "poa.actividad.ver",
+    "saldos.ver",
+    "certificacion.ver",
+    "certificacion.marcar_uso",
+    "liquidacion.ver",
+    "anulacion.ver",
+    "devolucion.crear",
+    "devolucion.clasificar",
+    "devolucion.ver",
+    "reporte.ver",
+  ],
+  bienes: [
+    "catalogos.ver",
+    "periodos.ver",
+    "cedula.ver",
+    "poa.ver",
+    "poa.actividad.ver",
+    "saldos.ver",
+    "certificacion.ver",
+    "modificacion.crear",
+    "modificacion.ver",
+  ],
 };
+
+export function getPermissionsForRole(rol: string): Permission[] {
+  return ROLE_PERMISSIONS[rol] ?? [];
+}
 
 export async function authGuard(c: Context, next: Next) {
   const authHeader = c.req.header("authorization");
@@ -154,7 +200,7 @@ export async function authGuard(c: Context, next: Next) {
     email: payload.email as string,
     rol,
     nombre: payload.nombre as string,
-    permisos: ROLE_PERMISSIONS[rol] ?? [],
+    permisos: getPermissionsForRole(rol),
   });
   await next();
 }

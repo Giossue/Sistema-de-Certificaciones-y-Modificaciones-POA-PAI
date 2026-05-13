@@ -4,59 +4,62 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 export async function seedUsuarios() {
-  const adminExists = await prisma.usuario.findUnique({
-    where: { email: "admin@ueb.edu.ec" },
-  });
-
-  if (adminExists) {
-    console.log("✓ Usuarios ya sembrados");
-    return;
-  }
-
-  const password = await bcrypt.hash("admin123", 10);
-
-  await prisma.usuario.create({
-    data: {
+  const usuarios = [
+    {
       email: "admin@ueb.edu.ec",
-      password,
+      password: "admin123",
       nombre: "Administrador del Sistema",
       rol: Rol.admin,
-      activo: true,
     },
-  });
-
-  const directorPassword = await bcrypt.hash("director123", 10);
-  await prisma.usuario.create({
-    data: {
+    {
       email: "director@ueb.edu.ec",
-      password: directorPassword,
+      password: "director123",
       nombre: "Ing. Tania Alban",
       rol: Rol.director,
-      activo: true,
     },
-  });
-
-  const analistaPassword = await bcrypt.hash("analista123", 10);
-  await prisma.usuario.create({
-    data: {
+    {
       email: "analista@ueb.edu.ec",
-      password: analistaPassword,
+      password: "analista123",
       nombre: "Analista de Planificación",
       rol: Rol.analista,
-      activo: true,
     },
-  });
-
-  const unidadPassword = await bcrypt.hash("unidad123", 10);
-  await prisma.usuario.create({
-    data: {
+    {
       email: "unidad@ueb.edu.ec",
-      password: unidadPassword,
+      password: "unidad123",
       nombre: "Secretaría Académica",
       rol: Rol.unidad,
-      activo: true,
     },
-  });
+    {
+      email: "financiero@ueb.edu.ec",
+      password: "financiero123",
+      nombre: "Coordinación Administrativa Financiera",
+      rol: Rol.financiero,
+    },
+    {
+      email: "bienes@ueb.edu.ec",
+      password: "bienes123",
+      nombre: "Área de Bienes",
+      rol: Rol.bienes,
+    },
+  ];
+
+  for (const usuario of usuarios) {
+    await prisma.usuario.upsert({
+      where: { email: usuario.email },
+      update: {
+        nombre: usuario.nombre,
+        rol: usuario.rol,
+        activo: true,
+      },
+      create: {
+        email: usuario.email,
+        password: await bcrypt.hash(usuario.password, 10),
+        nombre: usuario.nombre,
+        rol: usuario.rol,
+        activo: true,
+      },
+    });
+  }
 
   console.log("✓ Usuarios sembrados");
 }

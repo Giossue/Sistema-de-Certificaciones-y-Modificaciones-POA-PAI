@@ -1,11 +1,20 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@heroui/react";
-import { Loader, Plus, Users, Edit2, Trash2, CheckCircle, XCircle } from "lucide-react";
+import { Loader, Plus, Trash2, CheckCircle, XCircle } from "lucide-react";
 import { api } from "@/services/api-client";
-import { Pagination } from "@/components/pagination";
-
-type Rol = "admin" | "director" | "analista" | "unidad";
-
+import {
+  InlineMessage,
+  PageHeader,
+  SectionCard,
+} from "@/components/saas-layout";
+import { AppBadge, AppTable } from "@/components/app-ui";
+type Rol =
+  | "admin"
+  | "director"
+  | "analista"
+  | "unidad"
+  | "financiero"
+  | "bienes";
 interface Usuario {
   id: string;
   email: string;
@@ -14,39 +23,56 @@ interface Usuario {
   activo: boolean;
   createdAt: string;
 }
-
 const rolLabel: Record<Rol, string> = {
   admin: "Administrador",
   director: "Director",
   analista: "Analista",
   unidad: "Unidad",
+  financiero: "Financiero",
+  bienes: "Bienes",
 };
-
-const ITEMS_PER_PAGE = 10;
-
+const usuariosColumns = [
+  { key: "nombre", label: "Nombre", width: "34%" },
+  { key: "correo", label: "Correo", width: "28%" },
+  { key: "rol", label: "Rol", width: "15%" },
+  { key: "estado", label: "Estado", width: "12%" },
+  { key: "acciones", label: "Acciones", align: "right" as const, width: "11%" },
+];
 export function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [totalUsuarios, setTotalUsuarios] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
-  const [form, setForm] = useState({ nombre: "", email: "", password: "", rol: "unidad" as Rol });
-  const [editMode, setEditMode] = useState<{ id: string; nombre: string; email: string; rol: Rol } | null>(null);
+  const [form, setForm] = useState({
+    nombre: "",
+    email: "",
+    password: "",
+    rol: "unidad" as Rol,
+  });
+  const [editMode, setEditMode] = useState<{
+    id: string;
+    nombre: string;
+    email: string;
+    rol: Rol;
+  } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-
-  const cargar = async () => {
+  const [pageSize, setPageSize] = useState(10);
+  const cargar = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await api.get<Usuario[]>("/usuarios");
-      setUsuarios(data);
+      const data = await api.get<{ items: Usuario[]; totalItems: number }>(
+        `/usuarios?page=${currentPage}&pageSize=${pageSize}`,
+      );
+      setUsuarios(data.items || []);
+      setTotalUsuarios(Number(data.totalItems || 0));
     } finally {
       setLoading(false);
     }
-  };
-
+  }, [currentPage, pageSize]);
   useEffect(() => {
     cargar();
-  }, []);
-
+  }, [cargar]);
   const crear = async () => {
     setSaving(true);
     setMessage("");
@@ -61,7 +87,6 @@ export function UsuariosPage() {
       setSaving(false);
     }
   };
-
   const actualizar = async () => {
     if (!editMode) return;
     setSaving(true);
@@ -81,7 +106,6 @@ export function UsuariosPage() {
       setSaving(false);
     }
   };
-
   const toggleActivo = async (usuario: Usuario) => {
     setMessage("");
     try {
@@ -94,9 +118,13 @@ export function UsuariosPage() {
       setMessage(err.message || "No se pudo cambiar el estado del usuario");
     }
   };
-
   const eliminar = async (usuario: Usuario) => {
-    if (!confirm(`¿Eliminar a ${usuario.nombre}? Esta acción no se puede deshacer.`)) return;
+    if (
+      !confirm(
+        `¿Eliminar a ${usuario.nombre}? Esta acción no se puede deshacer.`,
+      )
+    )
+      return;
     setSaving(true);
     setMessage("");
     try {
@@ -109,157 +137,196 @@ export function UsuariosPage() {
       setSaving(false);
     }
   };
-
-  const usuariosPaginados = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    const end = start + ITEMS_PER_PAGE;
-    return usuarios.slice(start, end);
-  }, [usuarios, currentPage]);
-
-  const totalPages = Math.ceil(usuarios.length / ITEMS_PER_PAGE);
-
+  const totalPages = Math.max(1, Math.ceil(totalUsuarios / pageSize));
   return (
     <div className="p-6">
-      <div className="mb-5">
-        <h1 className="text-2xl font-bold text-slate-800">Usuarios</h1>
-        <p className="text-sm text-slate-500 mt-1">Administracion de accesos institucionales</p>
-      </div>
-
-      {message && <div className="mb-4 bg-slate-50 border border-slate-200 p-3 text-sm text-slate-700">{message}</div>}
-
-      <div className="grid grid-cols-1 xl:grid-cols-[380px_1fr] gap-6">
-        <div className="bg-white shadow-sm p-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Plus size={18} className="text-primary" />
-            <h2 className="text-base font-semibold text-slate-700">{editMode ? "Editar usuario" : "Nuevo usuario"}</h2>
-          </div>
-          <div className="space-y-3">
-            <input
-              value={editMode ? editMode.nombre : form.nombre}
-              onChange={(e) => editMode ? setEditMode({ ...editMode, nombre: e.target.value }) : setForm((f) => ({ ...f, nombre: e.target.value }))}
-              placeholder="Nombre"
-              className="w-full px-3 py-2 border border-slate-300 text-sm"
-            />
-            <input
-              value={editMode ? editMode.email : form.email}
-              onChange={(e) => editMode ? setEditMode({ ...editMode, email: e.target.value }) : setForm((f) => ({ ...f, email: e.target.value }))}
-              placeholder="Correo institucional"
-              className="w-full px-3 py-2 border border-slate-300 text-sm"
-              type="email"
-            />
-            {!editMode && (
-              <input
-                value={form.password}
-                onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                type="password"
-                placeholder="Contraseña temporal"
-                className="w-full px-3 py-2 border border-slate-300 text-sm"
-              />
-            )}
-            <select
-              value={editMode ? editMode.rol : form.rol}
-              onChange={(e) => editMode ? setEditMode({ ...editMode, rol: e.target.value as Rol }) : setForm((f) => ({ ...f, rol: e.target.value as Rol }))}
-              className="w-full px-3 py-2 border border-slate-300 text-sm"
-            >
-              {Object.entries(rolLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-            </select>
-            <div className="flex gap-2">
+      <PageHeader
+        title="Usuarios"
+        description="Administracion de accesos institucionales"
+      />
+      {message && <InlineMessage>{message}</InlineMessage>}
+      <div className="space-y-6">
+        <SectionCard
+          title={editMode ? "Editar usuario" : "Nuevo usuario"}
+          description="Datos de acceso y rol operativo"
+        >
+          <div className="max-w-5xl space-y-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-[minmax(220px,1.1fr)_minmax(220px,1fr)_180px]">
+              <label className="block">
+                <span className="mb-1.5 block">Nombre</span>
+                <input
+                  value={editMode ? editMode.nombre : form.nombre}
+                  onChange={(e) =>
+                    editMode
+                      ? setEditMode({ ...editMode, nombre: e.target.value })
+                      : setForm((f) => ({ ...f, nombre: e.target.value }))
+                  }
+                  placeholder="Nombre completo"
+                  className="app-field-input"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block">Correo</span>
+                <input
+                  value={editMode ? editMode.email : form.email}
+                  onChange={(e) =>
+                    editMode
+                      ? setEditMode({ ...editMode, email: e.target.value })
+                      : setForm((f) => ({ ...f, email: e.target.value }))
+                  }
+                  placeholder="correo@ueb.edu.ec"
+                  className="app-field-input"
+                  type="email"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block">Rol</span>
+                <select
+                  value={editMode ? editMode.rol : form.rol}
+                  onChange={(e) =>
+                    editMode
+                      ? setEditMode({ ...editMode, rol: e.target.value as Rol })
+                      : setForm((f) => ({ ...f, rol: e.target.value as Rol }))
+                  }
+                  className="app-field-input"
+                >
+                  {Object.entries(rolLabel).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {!editMode && (
+                <label className="block md:col-span-2 xl:col-span-1">
+                  <span className="mb-1.5 block">Contraseña temporal</span>
+                  <input
+                    value={form.password}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, password: e.target.value }))
+                    }
+                    type="password"
+                    placeholder="Minimo 6 caracteres"
+                    className="app-field-input"
+                  />
+                </label>
+              )}
+            </div>
+            <div className="app-form-actions flex-col gap-2 sm:flex-row">
               <Button
                 onPress={editMode ? actualizar : crear}
-                isDisabled={saving || !(editMode ? editMode.nombre && editMode.email : form.nombre && form.email && form.password.length >= 6)}
-                className="flex-1 bg-primary text-white"
+                isDisabled={
+                  saving ||
+                  !(editMode
+                    ? editMode.nombre && editMode.email
+                    : form.nombre && form.email && form.password.length >= 6)
+                }
+                className="app-button app-button-primary w-full whitespace-nowrap sm:w-auto"
               >
-                {saving ? <Loader size={16} className="animate-spin" /> : <Users size={16} />}
-                {editMode ? "Actualizar" : "Crear usuario"}
+                {saving ? (
+                  <Loader size={16} className="animate-spin" />
+                ) : (
+                  <Plus size={16} />
+                )}
+                {editMode ? "Actualizar usuario" : "Crear usuario"}
               </Button>
               {editMode && (
                 <Button
                   onPress={() => setEditMode(null)}
                   variant="outline"
-                  className="flex-1"
+                  className="w-full sm:w-auto"
                 >
                   Cancelar
                 </Button>
               )}
             </div>
           </div>
-        </div>
-
-        <div className="bg-white shadow-sm">
-          <div className="p-4 border-b border-slate-100">
-            <h2 className="text-base font-semibold text-slate-700">Usuarios registrados</h2>
-          </div>
+        </SectionCard>
+        <SectionCard title="Usuarios registrados" contentClassName="p-0">
           {loading ? (
-            <div className="p-10 text-center text-slate-400"><Loader size={20} className="animate-spin mx-auto mb-2" /> Cargando usuarios</div>
+            <div className="p-10 text-center">
+              <Loader size={20} className="animate-spin mx-auto mb-2" />
+              Cargando usuarios
+            </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 border-b border-slate-200">
-                    <tr>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Nombre</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Correo</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Rol</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Estado</th>
-                      <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {usuariosPaginados.map((usuario) => (
-                      <tr key={usuario.id} className="border-b border-slate-100 hover:bg-slate-50">
-                        <td className="px-4 py-3 font-medium text-slate-800">{usuario.nombre}</td>
-                        <td className="px-4 py-3 text-slate-600">{usuario.email}</td>
-                        <td className="px-4 py-3"><span className="bg-slate-100 text-slate-700 px-2 py-0.5 text-xs">{rolLabel[usuario.rol]}</span></td>
-                        <td className="px-4 py-3">
-                          <span className={`text-xs px-2 py-0.5 rounded ${usuario.activo ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                            {usuario.activo ? "Activo" : "Inactivo"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end gap-1">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 px-2"
-                              onPress={() => setEditMode({ id: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol })}
-                            >
-                              <Edit2 size={14} />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className={`h-8 px-2 ${usuario.activo ? "text-amber-600 hover:bg-amber-50" : "text-green-600 hover:bg-green-50"}`}
-                              onPress={() => toggleActivo(usuario)}
-                              isDisabled={usuario.rol === "admin"}
-                            >
-                              {usuario.activo ? <XCircle size={14} /> : <CheckCircle size={14} />}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 px-2 text-red-600 hover:bg-red-50"
-                              onPress={() => eliminar(usuario)}
-                              isDisabled={usuario.rol === "admin"}
-                            >
-                              <Trash2 size={14} />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                totalItems={usuarios.length}
-                itemsPerPage={ITEMS_PER_PAGE}
-                onPageChange={setCurrentPage}
-              />
+              <AppTable
+                columns={usuariosColumns}
+                minWidth={960}
+                pagination={{
+                  currentPage,
+                  totalPages,
+                  totalItems: totalUsuarios,
+                  itemsPerPage: pageSize,
+                  onPageChange: setCurrentPage,
+                  onItemsPerPageChange: setPageSize,
+                }}
+              >
+                {usuarios.map((usuario) => (
+                  <tr key={usuario.id}>
+                    <td className="app-table-primary">{usuario.nombre}</td>
+                    <td className="">{usuario.email}</td>
+                    <td>
+                      <AppBadge>{rolLabel[usuario.rol]}</AppBadge>
+                    </td>
+                    <td>
+                      <AppBadge tone={usuario.activo ? "success" : "danger"}>
+                        {usuario.activo ? "Activo" : "Inactivo"}
+                      </AppBadge>
+                    </td>
+                    <td>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 px-2"
+                          onPress={() =>
+                            setEditMode({
+                              id: usuario.id,
+                              nombre: usuario.nombre,
+                              email: usuario.email,
+                              rol: usuario.rol,
+                            })
+                          }
+                        >
+                          Edit.
+                        </Button>
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className={`h-8 w-8 p-0 flex items-center justify-center ${usuario.activo ? " hover:bg-amber-50" : " hover:bg-green-50"}`}
+                            onPress={() => toggleActivo(usuario)}
+                            isDisabled={usuario.rol === "admin"}
+                            aria-label={
+                              usuario.activo ? "Desactivar" : "Activar"
+                            }
+                          >
+                            {usuario.activo ? (
+                              <XCircle size={14} />
+                            ) : (
+                              <CheckCircle size={14} />
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="app-icon-button-danger"
+                            onPress={() => eliminar(usuario)}
+                            isDisabled={usuario.rol === "admin"}
+                            aria-label="Eliminar"
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </AppTable>
             </>
           )}
-        </div>
+        </SectionCard>
       </div>
     </div>
   );
