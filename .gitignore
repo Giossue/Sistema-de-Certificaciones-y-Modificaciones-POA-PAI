@@ -36,6 +36,7 @@ logs/
 # IDE
 .vscode/
 .idea/
+.codex/
 *.swp
 *.swo
 
