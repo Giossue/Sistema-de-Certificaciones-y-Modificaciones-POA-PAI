@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { InlineMessage, PageHeader } from "@/components/saas-layout";
-import { ObservationDialog } from "@/components/app-ui";
+import { ConfirmDialog, ObservationDialog } from "@/components/app-ui";
 import { useAuth } from "@/features/auth/use-auth";
 import { AnulacionForm } from "./components/anulacion-form";
 import { AnulacionesTable } from "./components/anulaciones-table";
@@ -28,6 +28,9 @@ export function AnulacionesPage() {
   const [rechazoId, setRechazoId] = useState<string | null>(null);
   const [motivoRechazo, setMotivoRechazo] = useState("");
   const [rechazando, setRechazando] = useState(false);
+  const [aprobacionId, setAprobacionId] = useState<string | null>(null);
+  const [aprobando, setAprobando] = useState(false);
+  const [solicitudConfirmOpen, setSolicitudConfirmOpen] = useState(false);
 
   const cargar = useCallback(async () => {
     if (!token) return;
@@ -62,14 +65,26 @@ export function AnulacionesPage() {
     }
   };
 
+  const ejecutarAprobacion = async () => {
+    if (!token) return;
+    if (!aprobacionId) return;
+    setAprobando(true);
+    try {
+      const { res, data } = await aprobarAnulacion(aprobacionId);
+      if (!res.ok) setMessage(data.error || "No se pudo aprobar");
+      else {
+        setMessage("Anulación aprobada");
+        setAprobacionId(null);
+        await cargar();
+      }
+    } finally {
+      setAprobando(false);
+    }
+  };
+
   const aprobar = async (id: string) => {
     if (!token) return;
-    const { res, data } = await aprobarAnulacion(id);
-    if (!res.ok) setMessage(data.error || "No se pudo aprobar");
-    else {
-      setMessage("Anulación aprobada");
-      await cargar();
-    }
+    setAprobacionId(id);
   };
 
   const ejecutarRechazo = async () => {
@@ -113,7 +128,7 @@ export function AnulacionesPage() {
           motivo={motivo}
           setMotivo={setMotivo}
           loading={loading}
-          onEnviar={enviar}
+          onEnviar={() => setSolicitudConfirmOpen(true)}
         />
         <AnulacionesTable
           anulaciones={anulaciones}
@@ -143,6 +158,35 @@ export function AnulacionesPage() {
         onConfirm={ejecutarRechazo}
         onClose={() => {
           if (!rechazando) setRechazoId(null);
+        }}
+      />
+      <ConfirmDialog
+        open={Boolean(aprobacionId)}
+        title="Confirmar aprobación"
+        description="Está por aprobar esta solicitud de anulación. Revise que la certificación y el motivo sean correctos antes de continuar."
+        confirmText="Aprobar"
+        cancelText="Cancelar"
+        tone="warning"
+        loading={aprobando}
+        onConfirm={ejecutarAprobacion}
+        onClose={() => {
+          if (!aprobando) setAprobacionId(null);
+        }}
+      />
+      <ConfirmDialog
+        open={solicitudConfirmOpen}
+        title="Solicitar anulación"
+        description="Está por solicitar una anulación. Revise certificación y motivo antes de continuar."
+        confirmText="Solicitar anulación"
+        cancelText="Cancelar"
+        tone="warning"
+        loading={loading}
+        onConfirm={async () => {
+          await enviar();
+          setSolicitudConfirmOpen(false);
+        }}
+        onClose={() => {
+          if (!loading) setSolicitudConfirmOpen(false);
         }}
       />
     </div>

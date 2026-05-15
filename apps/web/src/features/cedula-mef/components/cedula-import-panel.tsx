@@ -3,7 +3,6 @@ import type { ChangeEvent, DragEvent } from "react";
 import {
   AlertCircle,
   CheckCircle,
-  Download,
   FileSpreadsheet,
   Hash,
   Upload,
@@ -50,137 +49,126 @@ export function CedulaImportPanel({
 }) {
   return (
     <SectionCard
-      title="Panel MEF"
+      title="Carga de cédula MEF"
       description={
         selectedPeriodo
           ? `Periodo activo: ${selectedPeriodo.nombre}`
           : "Seleccione periodo para cargar o consultar la cédula"
       }
-      actions={
-        <a
-          href="/plantilla-cedula-mef.csv"
-          download="plantilla-cedula-mef.csv"
-          className="app-button app-button-secondary"
-        >
-          <Download size={12} /> Plantilla CSV
-        </a>
-      }
       contentClassName="p-0"
     >
-      <div className="grid gap-0 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,.75fr)]">
-        <div className="space-y-3 p-4">
-          <div className="grid gap-3 xl:grid-cols-[260px_minmax(360px,1fr)_auto] xl:items-end">
-            <label className="flex flex-col gap-1.5">
-              Periodo
-              <select
-                value={periodoFiscalId}
-                onChange={(e) => onPeriodoChange(e.target.value)}
-                className="h-8 w-full px-2"
-              >
-                <option value="">Seleccione un periodo</option>
-                {periodos.map((periodo) => (
-                  <option key={periodo.id} value={periodo.id}>
-                    {periodo.nombre} ({periodo.anio})
-                  </option>
-                ))}
-              </select>
-            </label>
-            {periodosError && <p className="">{periodosError}</p>}
-            <div
-              className={`app-upload-target ${selectedFile ? "is-active" : ""}`}
-              onDragOver={onDragOver}
-              onDrop={onDrop}
-              onClick={() => document.getElementById("file-input")?.click()}
+      <div className="space-y-4 p-4">
+        <div className="max-w-3xl space-y-4">
+          <label className="block max-w-md">
+            <span className="mb-1.5 block">Periodo</span>
+            <select
+              value={periodoFiscalId}
+              onChange={(e) => onPeriodoChange(e.target.value)}
+              className="app-field-input"
             >
-              <input
-                id="file-input"
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={onFileSelect}
-                className="hidden"
-              />
-              <div className="flex h-10 items-center gap-3 px-3">
-                {selectedFile ? (
-                  <>
-                    <FileSpreadsheet size={18} className="shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="app-upload-title truncate">
-                        {selectedFile.name}
-                      </p>
-                      <p className="">
-                        {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onClearFile();
-                      }}
-                      className="filter-clear-button app-filter-clear"
-                    >
-                      Quitar
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <Upload size={18} className="shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="app-upload-title truncate">
-                        Seleccionar archivo ESIGEF
-                      </p>
-                      <p className="">
-                        Arrastre o seleccione un archivo .xlsx o .xls
-                      </p>
-                    </div>
-                  </>
-                )}
-              </div>
+              <option value="">Seleccione un periodo</option>
+              {periodos.map((periodo) => (
+                <option key={periodo.id} value={periodo.id}>
+                  {periodo.nombre} ({periodo.anio})
+                </option>
+              ))}
+            </select>
+          </label>
+          {periodosError && <p className="">{periodosError}</p>}
+          <div className="app-info-panel">
+            <div className="flex items-center justify-between gap-3">
+              <p className="app-table-primary">Versión vigente</p>
+              {vigenteVersion?.vigente && (
+                <span className="app-badge app-badge-success">Vigente</span>
+              )}
             </div>
-            <button
-              type="button"
-              onClick={onUpload}
-              disabled={!selectedFile || !periodoFiscalId || loading}
-              className="app-button app-button-primary w-full xl:w-auto"
-            >
-              {loading ? "Importando..." : "Importar cédula"}
-            </button>
-          </div>
-          <p className="">
-            La cédula vigente será obligatoria para certificar o modificar. Use
-            una nueva carga solo cuando exista corte MEF actualizado.
-          </p>
-        </div>
-        <div className="app-info-panel lg:border-l lg:border-t-0">
-          <div className="flex items-center justify-between gap-3">
-            <p className="">Versión vigente</p>
-            {vigenteVersion?.vigente && (
-              <span className="app-badge app-badge-success">Vigente</span>
+            {vigenteVersion ? (
+              <div className="mt-3 space-y-2">
+                <InfoRow label="Archivo" value={vigenteVersion.archivoNombre} />
+                <InfoRow
+                  label="Entradas"
+                  value={vigenteVersion.totalEntradas.toLocaleString("es-EC")}
+                />
+                <InfoRow
+                  label="Última carga"
+                  value={formatearFecha(vigenteVersion.createdAt)}
+                />
+                <InfoRow
+                  label="Hash"
+                  value={`${vigenteVersion.archivoHash.slice(0, 12)}...`}
+                  mono
+                />
+              </div>
+            ) : (
+              <p className="app-table-secondary mt-6 text-center">
+                Sin versión vigente para el periodo seleccionado
+              </p>
             )}
           </div>
-          {vigenteVersion ? (
-            <div className="mt-3 space-y-2">
-              <InfoRow label="Archivo" value={vigenteVersion.archivoNombre} />
-              <InfoRow
-                label="Entradas"
-                value={vigenteVersion.totalEntradas.toLocaleString("es-EC")}
-              />
-              <InfoRow
-                label="Última carga"
-                value={formatearFecha(vigenteVersion.createdAt)}
-              />
-              <InfoRow
-                label="Hash"
-                value={`${vigenteVersion.archivoHash.slice(0, 12)}...`}
-                mono
-              />
-            </div>
-          ) : (
-            <p className="mt-6 text-center">
-              Sin versión vigente para el periodo seleccionado
-            </p>
-          )}
+          <div
+            className={`flex min-h-32 cursor-pointer flex-col items-center justify-center rounded border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center transition hover:border-slate-400 hover:bg-slate-100 ${selectedFile ? "border-slate-400 bg-slate-100" : ""}`}
+            onDragOver={onDragOver}
+            onDrop={onDrop}
+            onClick={() => document.getElementById("file-input")?.click()}
+          >
+            <input
+              id="file-input"
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={onFileSelect}
+              className="hidden"
+            />
+            {selectedFile ? (
+              <>
+                <FileSpreadsheet size={24} className="mb-2 text-slate-600" />
+                <p className="app-table-primary max-w-full truncate">
+                  {selectedFile.name}
+                </p>
+                <p className="app-table-secondary mt-1">
+                  {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                </p>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClearFile();
+                  }}
+                  className="app-button app-button-secondary app-button-sm mt-3"
+                >
+                  Quitar archivo
+                </button>
+              </>
+            ) : (
+              <>
+                <Upload size={24} className="mb-2 text-slate-600" />
+                <p className="app-table-primary">Seleccionar archivo ESIGEF</p>
+                <p className="app-table-secondary mt-1">
+                  Arrastre o seleccione un archivo .xlsx o .xls
+                </p>
+                <a
+                  href="/plantilla-cedula-mef.csv"
+                  download="plantilla-cedula-mef.csv"
+                  onClick={(event) => event.stopPropagation()}
+                  className="mt-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  Descargar plantilla CSV
+                </a>
+              </>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={onUpload}
+            disabled={!selectedFile || !periodoFiscalId || loading}
+            className="app-button app-button-primary w-full sm:w-auto"
+          >
+            {loading ? "Importando..." : "Importar cédula"}
+          </button>
         </div>
+        <p className="app-table-secondary max-w-3xl">
+          La cédula vigente será obligatoria para certificar o modificar. Use
+          una nueva carga solo cuando exista corte MEF actualizado.
+        </p>
       </div>
       <div className="app-form-footer">
         {loading && (

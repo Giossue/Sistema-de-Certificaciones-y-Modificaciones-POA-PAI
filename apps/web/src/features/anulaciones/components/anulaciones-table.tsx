@@ -1,4 +1,3 @@
-import { CheckCircle, XCircle } from "lucide-react";
 import { AppButton, AppTable } from "@/components/app-ui";
 import { EmptyState, SectionCard } from "@/components/saas-layout";
 import { EstadoBadge } from "@/components/tramites";
@@ -55,7 +54,7 @@ export function AnulacionesTable({
           variant="primary"
           onClick={() => onAprobar(anulacion.id)}
         >
-          <CheckCircle size={14} /> Aprobar
+          Aprobar
         </AppButton>
         <AppButton
           type="button"
@@ -63,7 +62,7 @@ export function AnulacionesTable({
           variant="secondary"
           onClick={() => onRechazar(anulacion.id)}
         >
-          <XCircle size={14} /> Rechazar
+          Rechazar
         </AppButton>
       </div>
     ) : null;
@@ -110,9 +109,13 @@ export function AnulacionesTable({
                 </p>
               </td>
               <td>
-                <p className="app-table-secondary">{a.motivo}</p>
+                <p className="app-table-primary">{a.motivo}</p>
               </td>
-              <td className="text-center">${formatMoney(a.montoLiberado)}</td>
+              <td className="text-center">
+                <span className="app-table-primary">
+                  ${formatMoney(a.montoLiberado)}
+                </span>
+              </td>
               <td className="text-center">
                 <EstadoBadge estado={a.estado || "aprobada"} />
               </td>

@@ -1,5 +1,5 @@
 import { Button } from "@heroui/react";
-import { GitBranch, Loader } from "lucide-react";
+import { Loader } from "lucide-react";
 import { SectionCard } from "@/components/saas-layout";
 import type { ActividadSaldo, PeriodoFiscal } from "../types";
 import { money } from "./money";
@@ -65,14 +65,14 @@ export function ModificacionForm({
 }) {
   return (
     <SectionCard title="Nueva solicitud">
-      <div className="max-w-6xl space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-[180px_minmax(280px,1fr)_260px] gap-3">
+      <div className="max-w-5xl space-y-5">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-[220px_minmax(240px,1fr)]">
           <label className="block min-w-0">
-            <span className="">Periodo</span>
+            <span className="mb-1.5 block">Periodo</span>
             <select
               value={periodoFiscalId}
               onChange={(e) => setPeriodoFiscalId(e.target.value)}
-              className="app-field-input mt-1"
+              className="app-field-input"
             >
               {periodos.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -82,33 +82,11 @@ export function ModificacionForm({
             </select>
           </label>
           <label className="block min-w-0">
-            <span className="">Actividad origen</span>
-            <input
-              value={actividadSearch}
-              onChange={(e) => setActividadSearch(e.target.value)}
-              placeholder="Buscar actividad origen..."
-              className="app-field-input mt-1"
-            />
-            <select
-              value={actividadId}
-              onChange={(e) => setActividadId(e.target.value)}
-              className="app-field-input mt-1"
-            >
-              <option value="">Seleccione actividad</option>
-              {actividades.map((a) => (
-                <option key={a.actividadId} value={a.actividadId}>
-                  {a.programaCodigo}/{a.actividadCodigo}/{a.itemCodigo}/
-                  {a.fuenteCodigo} - ${money(a.saldoDisponible)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block min-w-0">
-            <span className="">Motivo</span>
+            <span className="mb-1.5 block">Motivo</span>
             <select
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
-              className="app-field-input mt-1"
+              className="app-field-input"
             >
               <option value="">Seleccione motivo</option>
               {motivos.map((m) => (
@@ -119,104 +97,151 @@ export function ModificacionForm({
             </select>
           </label>
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[110px_110px_110px_130px_170px]">
-          <label className="block">
-            <span className="mb-1 block">Programa</span>
+
+        <div className="space-y-3">
+          <p className="app-table-primary">Actividad origen</p>
+          <label className="block min-w-0">
+            <span className="mb-1.5 block">Buscar actividad</span>
             <input
-              value={programaCodigo}
-              onChange={(e) => setProgramaCodigo(e.target.value)}
-              placeholder="Programa"
+              type="text"
+              value={actividadSearch}
+              onChange={(e) => setActividadSearch(e.target.value)}
+              placeholder="Buscar actividad origen..."
               className="app-field-input"
             />
           </label>
-          <label className="block">
-            <span className="mb-1 block">Actividad</span>
-            <input
-              value={actividadCodigo}
-              onChange={(e) => setActividadCodigo(e.target.value)}
-              placeholder="Actividad"
+          <label className="block min-w-0">
+            <span className="mb-1.5 block">Seleccionar actividad</span>
+            <select
+              value={actividadId}
+              onChange={(e) => setActividadId(e.target.value)}
               className="app-field-input"
-            />
+            >
+              <option value="">Seleccione actividad</option>
+              {actividades.map((a) => (
+                <option key={a.actividadId} value={a.actividadId}>
+                  {a.programaCodigo}/{a.actividadCodigo}/{a.itemCodigo}/
+                  {a.fuenteCodigo} - ${money(a.saldoDisponible)}
+                </option>
+              ))}
+            </select>
           </label>
-          <label className="block">
-            <span className="mb-1 block">Item</span>
-            <input
-              value={itemCodigo}
-              onChange={(e) => setItemCodigo(e.target.value)}
-              placeholder="Item"
-              className="app-field-input"
-            />
-          </label>
-          <label className="block">
-            <span className="mb-1 block">Fuente</span>
-            <input
-              value={actividad?.fuenteCodigo || ""}
-              disabled
-              className="app-field-input app-panel-muted"
-            />
-          </label>
-          <label className="block">
-            <span className="mb-1 block">Monto nuevo</span>
-            <input
-              value={montoPlanificadoNuevo}
-              onChange={(e) => setMontoPlanificadoNuevo(e.target.value)}
-              placeholder="0.00"
-              className="app-field-input"
-            />
-          </label>
+          {actividad && (
+            <div className="app-panel-muted rounded border border-slate-200 p-3">
+              <p className="app-table-primary">
+                Fuente bloqueada: {actividad.fuenteCodigo} -
+                {actividad.fuenteNombre}
+              </p>
+              <p className="app-table-secondary">
+                Planificado actual: ${money(actividad.montoPlanificado)}
+              </p>
+            </div>
+          )}
         </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <label className="block">
-            <span className="mb-1 block">Responsable nuevo</span>
-            <input
-              value={responsableNuevoNombre}
-              onChange={(e) => setResponsableNuevoNombre(e.target.value)}
-              placeholder="Nombre responsable"
-              className="app-field-input"
-            />
-          </label>
-          <label className="block">
-            <span className="mb-1 block">Tipo discrepancia bienes</span>
-            <input
-              value={tipoDiscrepancia}
-              onChange={(e) => setTipoDiscrepancia(e.target.value)}
-              placeholder="Valor, ítem, fuente, otro"
-              className="app-field-input"
-            />
-          </label>
-          <label className="block">
-            <span className="mb-1 block">Observación bienes</span>
-            <input
-              value={observacionBienes}
-              onChange={(e) => setObservacionBienes(e.target.value)}
-              placeholder="Referencia o motivo"
-              className="app-field-input"
-            />
-          </label>
+
+        <div className="space-y-3">
+          <p className="app-table-primary">Cambios propuestos</p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <label className="block">
+              <span className="mb-1.5 block">Programa</span>
+              <input
+                type="text"
+                value={programaCodigo}
+                onChange={(e) => setProgramaCodigo(e.target.value)}
+                placeholder="Programa"
+                className="app-field-input"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block">Actividad</span>
+              <input
+                type="text"
+                value={actividadCodigo}
+                onChange={(e) => setActividadCodigo(e.target.value)}
+                placeholder="Actividad"
+                className="app-field-input"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block">Ítem</span>
+              <input
+                type="text"
+                value={itemCodigo}
+                onChange={(e) => setItemCodigo(e.target.value)}
+                placeholder="Ítem"
+                className="app-field-input"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block">Fuente</span>
+              <input
+                type="text"
+                value={actividad?.fuenteCodigo || ""}
+                disabled
+                className="app-field-input"
+              />
+            </label>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-[220px_minmax(260px,1fr)]">
+            <label className="block">
+              <span className="mb-1.5 block">Monto nuevo</span>
+              <input
+                type="text"
+                value={montoPlanificadoNuevo}
+                onChange={(e) => setMontoPlanificadoNuevo(e.target.value)}
+                placeholder="0.00"
+                className="app-field-input"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block">Responsable nuevo</span>
+              <input
+                type="text"
+                value={responsableNuevoNombre}
+                onChange={(e) => setResponsableNuevoNombre(e.target.value)}
+                placeholder="Nombre responsable"
+                className="app-field-input"
+              />
+            </label>
+          </div>
         </div>
-        <div className="app-form-actions">
+
+        <div className="space-y-3">
+          <p className="app-table-primary">Información de bienes</p>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <label className="block">
+              <span className="mb-1.5 block">Tipo discrepancia bienes</span>
+              <input
+                type="text"
+                value={tipoDiscrepancia}
+                onChange={(e) => setTipoDiscrepancia(e.target.value)}
+                placeholder="Valor, ítem, fuente, otro"
+                className="app-field-input"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block">Observación bienes</span>
+              <input
+                type="text"
+                value={observacionBienes}
+                onChange={(e) => setObservacionBienes(e.target.value)}
+                placeholder="Referencia o motivo"
+                className="app-field-input"
+              />
+            </label>
+          </div>
+        </div>
+
+        <div className="flex justify-start">
           <Button
             onPress={onEnviar}
             isDisabled={!actividad || !motivo || loading}
-            className="app-button app-button-primary w-full whitespace-nowrap lg:w-auto"
+            className="app-button app-button-primary w-full whitespace-nowrap sm:w-auto"
           >
-            {loading ? (
-              <Loader size={16} className="animate-spin" />
-            ) : (
-              <GitBranch size={16} />
-            )}
+            {loading && <Loader size={16} className="animate-spin" />}
             Solicitar modificacion
           </Button>
         </div>
-        {actividad && (
-          <div className="app-panel-muted p-3">
-            <p>
-              Fuente bloqueada: {actividad.fuenteCodigo} -
-              {actividad.fuenteNombre}
-            </p>
-            <p>Planificado actual: ${money(actividad.montoPlanificado)}</p>
-          </div>
-        )}
       </div>
     </SectionCard>
   );

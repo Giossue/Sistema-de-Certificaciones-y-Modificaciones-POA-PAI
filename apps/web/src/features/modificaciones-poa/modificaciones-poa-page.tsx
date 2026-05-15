@@ -1,20 +1,48 @@
+import { useState } from "react";
 import { PageHeader } from "@/components/saas-layout";
 import {
   AppButton,
   AppInput,
   AppSelect,
   AppTextarea,
+  ConfirmDialog,
   FormField,
   InlineAlert,
   ObservationDialog,
 } from "@/components/app-ui";
-import type { EditarModificacionObservadaPayload } from "./types";
+import type {
+  EditarModificacionObservadaPayload,
+  ModificacionAccion,
+} from "./types";
 import { ModificacionForm } from "./components/modificacion-form";
 import { ModificacionesBandeja } from "./components/modificaciones-bandeja";
 import { useModificacionesPoaPage } from "./use-modificaciones-poa-page";
 
 export function ModificacionesPoaPage() {
   const page = useModificacionesPoaPage();
+  const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{
+    id: string;
+    tipo: ModificacionAccion;
+  } | null>(null);
+
+  const requestAction = (id: string, tipo: ModificacionAccion) => {
+    if (tipo === "observar" || tipo === "reenviar") {
+      void page.accion(id, tipo);
+      return;
+    }
+    setPendingAction({ id, tipo });
+  };
+
+  const pendingModificacion = pendingAction
+    ? page.modificaciones.find((modificacion) => modificacion.id === pendingAction.id)
+    : null;
+
+  const confirmarAccion = async () => {
+    if (!pendingAction) return;
+    const ok = await page.accion(pendingAction.id, pendingAction.tipo);
+    if (ok) setPendingAction(null);
+  };
 
   return (
     <div className="p-6">
@@ -53,7 +81,7 @@ export function ModificacionesPoaPage() {
             observacionBienes={page.observacionBienes}
             setObservacionBienes={page.setObservacionBienes}
             loading={page.loading}
-            onEnviar={page.enviar}
+            onEnviar={() => setSubmitConfirmOpen(true)}
           />
         )}
         <ModificacionesBandeja
@@ -65,7 +93,7 @@ export function ModificacionesPoaPage() {
           onPageChange={page.setCurrentPage}
           onItemsPerPageChange={page.setPageSize}
           onDescargarInforme={page.descargarInforme}
-          onAccion={page.accion}
+          onAccion={requestAction}
           onEditar={page.abrirEdicion}
           accionEnCursoId={page.accionEnCursoId}
           canResend={page.canCreate}
@@ -99,8 +127,83 @@ export function ModificacionesPoaPage() {
           await page.guardarEdicion();
         }}
       />
+      <ConfirmDialog
+        open={Boolean(pendingAction)}
+        title={
+          pendingAction
+            ? modificacionConfirmTitle(pendingAction.tipo)
+            : "Confirmar acción"
+        }
+        description={
+          pendingAction
+            ? modificacionConfirmDescription(
+                pendingAction.tipo,
+                pendingModificacion?.numero || "modificación seleccionada",
+              )
+            : undefined
+        }
+        confirmText={
+          pendingAction
+            ? modificacionConfirmText(pendingAction.tipo)
+            : "Confirmar"
+        }
+        cancelText="Cancelar"
+        tone={pendingAction?.tipo === "aplicar" ? "warning" : "info"}
+        loading={page.accionLoading}
+        onConfirm={confirmarAccion}
+        onClose={() => {
+          if (!page.accionLoading) setPendingAction(null);
+        }}
+      />
+      <ConfirmDialog
+        open={submitConfirmOpen}
+        title="Solicitar modificación"
+        description="Está por registrar una nueva modificación POA. Revise actividad origen, motivo, cambios propuestos y fuente antes de continuar."
+        confirmText="Solicitar modificación"
+        cancelText="Cancelar"
+        tone="info"
+        loading={page.loading}
+        onConfirm={async () => {
+          await page.enviar();
+          setSubmitConfirmOpen(false);
+        }}
+        onClose={() => {
+          if (!page.loading) setSubmitConfirmOpen(false);
+        }}
+      />
     </div>
   );
+}
+
+function modificacionConfirmTitle(tipo: ModificacionAccion) {
+  const labels: Partial<Record<ModificacionAccion, string>> = {
+    suscribir: "Confirmar suscripción",
+    aprobar: "Confirmar aprobación",
+    aplicar: "Confirmar aplicación",
+  };
+  return labels[tipo] || "Confirmar acción";
+}
+
+function modificacionConfirmText(tipo: ModificacionAccion) {
+  const labels: Partial<Record<ModificacionAccion, string>> = {
+    suscribir: "Suscribir",
+    aprobar: "Aprobar",
+    aplicar: "Aplicar",
+  };
+  return labels[tipo] || "Confirmar";
+}
+
+function modificacionConfirmDescription(
+  tipo: ModificacionAccion,
+  numero: string,
+) {
+  const copy: Partial<Record<ModificacionAccion, string>> = {
+    suscribir: "suscribir esta modificación POA",
+    aprobar: "aprobar esta modificación POA",
+    aplicar:
+      "aplicar esta modificación y crear la versión correspondiente del POA",
+  };
+  return `Está por ${copy[tipo] || "ejecutar esta acción"}: ${numero}. Revise que la modificación y el estado sean correctos antes de continuar.`;
 }
 
 function ModificacionesMessage({

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { InlineMessage, PageHeader } from "@/components/saas-layout";
-import { ObservationDialog } from "@/components/app-ui";
+import { ConfirmDialog, ObservationDialog } from "@/components/app-ui";
 import { useAuth } from "@/features/auth/use-auth";
 import { LiquidacionForm } from "./components/liquidacion-form";
 import { LiquidacionesTable } from "./components/liquidaciones-table";
@@ -30,6 +30,9 @@ export function LiquidacionesPage() {
   const [rechazoId, setRechazoId] = useState<string | null>(null);
   const [motivoRechazo, setMotivoRechazo] = useState("");
   const [rechazando, setRechazando] = useState(false);
+  const [aprobacionId, setAprobacionId] = useState<string | null>(null);
+  const [aprobando, setAprobando] = useState(false);
+  const [solicitudConfirmOpen, setSolicitudConfirmOpen] = useState(false);
   const token = localStorage.getItem("poa_token");
 
   const cargar = useCallback(async () => {
@@ -72,14 +75,26 @@ export function LiquidacionesPage() {
     }
   };
 
+  const ejecutarAprobacion = async () => {
+    if (!token) return;
+    if (!aprobacionId) return;
+    setAprobando(true);
+    try {
+      const { res, data } = await aprobarLiquidacion(aprobacionId);
+      if (!res.ok) setMessage(data.error || "No se pudo aprobar");
+      else {
+        setMessage("Liquidación aprobada");
+        setAprobacionId(null);
+        await cargar();
+      }
+    } finally {
+      setAprobando(false);
+    }
+  };
+
   const aprobar = async (id: string) => {
     if (!token) return;
-    const { res, data } = await aprobarLiquidacion(id);
-    if (!res.ok) setMessage(data.error || "No se pudo aprobar");
-    else {
-      setMessage("Liquidación aprobada");
-      await cargar();
-    }
+    setAprobacionId(id);
   };
 
   const ejecutarRechazo = async () => {
@@ -131,7 +146,7 @@ export function LiquidacionesPage() {
           motivo={motivo}
           setMotivo={setMotivo}
           loading={loading}
-          onEnviar={enviar}
+          onEnviar={() => setSolicitudConfirmOpen(true)}
         />
         <LiquidacionesTable
           liquidaciones={liquidaciones}
@@ -161,6 +176,35 @@ export function LiquidacionesPage() {
         onConfirm={ejecutarRechazo}
         onClose={() => {
           if (!rechazando) setRechazoId(null);
+        }}
+      />
+      <ConfirmDialog
+        open={Boolean(aprobacionId)}
+        title="Confirmar aprobación"
+        description="Está por aprobar esta solicitud de liquidación. Revise que la certificación, monto y modo sean correctos antes de continuar."
+        confirmText="Aprobar"
+        cancelText="Cancelar"
+        tone="info"
+        loading={aprobando}
+        onConfirm={ejecutarAprobacion}
+        onClose={() => {
+          if (!aprobando) setAprobacionId(null);
+        }}
+      />
+      <ConfirmDialog
+        open={solicitudConfirmOpen}
+        title="Solicitar liquidación"
+        description="Está por solicitar una liquidación. Revise certificación, tipo, modo, monto y motivo antes de continuar."
+        confirmText="Solicitar liquidación"
+        cancelText="Cancelar"
+        tone="info"
+        loading={loading}
+        onConfirm={async () => {
+          await enviar();
+          setSolicitudConfirmOpen(false);
+        }}
+        onClose={() => {
+          if (!loading) setSolicitudConfirmOpen(false);
         }}
       />
     </div>

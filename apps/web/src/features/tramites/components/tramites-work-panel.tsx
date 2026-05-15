@@ -126,22 +126,32 @@ export function TramitesWorkPanel({
                 onClick={() => setSelected(item)}
               >
                 <td className="w-56 px-4 py-3 align-top">
-                  <p className="">{item.numero}</p>
-                  <p className="">{kindLabel[item.kind]}</p>
+                  <p className="app-table-primary font-mono">{item.numero}</p>
+                  <p className="app-table-secondary">{kindLabel[item.kind]}</p>
                 </td>
                 <td className="px-4 py-3 align-top">
-                  <p className="">{item.titulo}</p>
-                  <p className="mt-0.5 max-w-xl">{item.detalle}</p>
+                  <p className="app-table-primary">{item.titulo}</p>
+                  <p className="app-table-secondary mt-0.5 max-w-xl">
+                    {item.detalle}
+                  </p>
                 </td>
                 <td className="w-64 px-4 py-3 align-top">
-                  {item.unidad || "-"}
+                  <span className="app-table-primary">
+                    {item.unidad || "-"}
+                  </span>
                 </td>
                 <td className="w-32 px-4 py-3 align-top">
-                  <p className="">{formatDate(item.createdAt)}</p>
-                  <p className="">{formatTime(item.createdAt)}</p>
+                  <p className="app-table-primary">
+                    {formatDate(item.createdAt)}
+                  </p>
+                  <p className="app-table-secondary">
+                    {formatTime(item.createdAt)}
+                  </p>
                 </td>
                 <td className="w-32 px-4 py-3 text-center align-top tabular-nums">
-                  {money(item.monto)}
+                  <span className="app-table-primary">
+                    {money(item.monto)}
+                  </span>
                 </td>
                 <td className="w-36 px-4 py-3 align-top">
                   <div className="flex w-full flex-wrap items-center justify-center gap-2">
@@ -167,7 +177,7 @@ export function TramitesWorkPanel({
                         className="app-button app-button-primary"
                         onPress={() => postAction(item, action.key)}
                       >
-                        {action.icon} {action.label}
+                        {action.label}
                       </Button>
                     ))}
                   </ActionBarPorRol>

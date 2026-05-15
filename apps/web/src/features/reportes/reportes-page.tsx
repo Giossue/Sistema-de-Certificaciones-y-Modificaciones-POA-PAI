@@ -118,26 +118,32 @@ export function ReportesPage() {
         description="Indicadores operativos, devoluciones y saldos bajos"
         actions={
           <div className="flex gap-2">
-            <select
-              value={periodoFiscalId}
-              onChange={(e) => {
-                setPeriodoFiscalId(e.target.value);
-                cargarReporte(e.target.value);
-              }}
-              className="app-field-input"
-            >
-              {periodos.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nombre} ({p.anio})
-                </option>
-              ))}
-            </select>
-            <Button onPress={() => exportar("xlsx")} variant="outline">
-              <Download size={16} /> XLSX
-            </Button>
-            <Button onPress={() => exportar("pdf")} variant="outline">
-              <Download size={16} /> PDF
-            </Button>
+            {periodos.length > 0 && (
+              <select
+                value={periodoFiscalId}
+                onChange={(e) => {
+                  setPeriodoFiscalId(e.target.value);
+                  cargarReporte(e.target.value);
+                }}
+                className="app-field-input"
+              >
+                {periodos.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nombre} ({p.anio})
+                  </option>
+                ))}
+              </select>
+            )}
+            {periodoFiscalId && (
+              <>
+                <Button onPress={() => exportar("xlsx")} variant="outline">
+                  <Download size={16} /> XLSX
+                </Button>
+                <Button onPress={() => exportar("pdf")} variant="outline">
+                  <Download size={16} /> PDF
+                </Button>
+              </>
+            )}
           </div>
         }
       />
@@ -147,6 +153,13 @@ export function ReportesPage() {
           <Loader size={20} className="animate-spin mx-auto mb-2" /> Cargando
           reporte
         </div>
+      ) : periodos.length === 0 ? (
+        <SectionCard title="Sin datos para reportar">
+          <EmptyState
+            title="No hay periodos fiscales cargados"
+            description="Importe POA y cédula MEF para generar indicadores de dirección."
+          />
+        </SectionCard>
       ) : (
         reporte && (
           <>
@@ -211,7 +224,9 @@ export function ReportesPage() {
                         <td>
                           <p className="app-table-primary">{item.causa}</p>
                         </td>
-                        <td className="text-center">{item.total}</td>
+                        <td className="text-center">
+                          <span className="app-table-primary">{item.total}</span>
+                        </td>
                       </tr>
                     ))}
                     {(reporte.devoluciones.clasificaciones || []).map(
@@ -225,7 +240,11 @@ export function ReportesPage() {
                               {item.clasificacion || "Sin clasificación"}
                             </p>
                           </td>
-                          <td className="text-center">{item.total}</td>
+                          <td className="text-center">
+                            <span className="app-table-primary">
+                              {item.total}
+                            </span>
+                          </td>
                         </tr>
                       ),
                     )}

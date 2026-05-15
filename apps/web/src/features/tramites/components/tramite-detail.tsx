@@ -39,7 +39,7 @@ export function TramiteDetail({
       </div>
       <TramiteTimeline steps={timelineFor(selected)} />
       <DetalleContenido item={selected} />
-      <ActionBarPorRol>
+      <ActionBarPorRol align="center">
         {quickActions(selected, userRole).map((action) => (
           <Button
             key={action.key}
@@ -47,7 +47,7 @@ export function TramiteDetail({
             className="app-button app-button-primary"
             onPress={() => postAction(selected, action.key)}
           >
-            {action.icon} {action.label}
+            {action.label}
           </Button>
         ))}
       </ActionBarPorRol>

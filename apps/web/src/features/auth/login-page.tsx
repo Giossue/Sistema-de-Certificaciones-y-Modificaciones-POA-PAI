@@ -25,14 +25,25 @@ export function LoginPage() {
   return (
     <div className="auth-page">
       <div className="auth-shell">
-        <div className="auth-brand">
-          <img src="/assets/logo.png" alt="Logo" className="auth-logo" />
-          <h1 className="auth-title">Sistema POA/PAI</h1>
-          <p className="auth-subtitle">Universidad Estatal de Bolívar</p>
-        </div>
+        <section className="auth-brand-panel" aria-label="Sistema POA PAI">
+          <div className="auth-brand">
+            <div className="auth-logo-shell">
+              <img src="/assets/logo.png" alt="Logo" className="auth-logo" />
+            </div>
+            <h1 className="auth-title">Sistema POA/PAI</h1>
+            <p className="auth-subtitle">Universidad Estatal de Bolívar</p>
+          </div>
+          <div className="auth-brand-copy">
+            <p>Planificación, certificación y seguimiento presupuestario institucional.</p>
+          </div>
+        </section>
 
         <Card className="auth-card">
           <CardContent className="p-6">
+            <div className="auth-form-header">
+              <h2>Iniciar sesión</h2>
+              <p>Ingrese con sus credenciales institucionales.</p>
+            </div>
             <form onSubmit={handleSubmit} className="auth-form">
               <div>
                 <label className="app-field-label">Correo electrónico</label>
@@ -68,9 +79,8 @@ export function LoginPage() {
             </form>
           </CardContent>
         </Card>
-
-        <p className="auth-footer">Dirección de Planificación Estratégica</p>
       </div>
+      <p className="auth-footer">Dirección de Planificación Estratégica</p>
     </div>
   );
 }

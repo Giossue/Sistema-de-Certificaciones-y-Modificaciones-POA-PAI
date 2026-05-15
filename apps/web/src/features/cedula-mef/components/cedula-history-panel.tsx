@@ -125,7 +125,7 @@ export function CedulaHistoryPanel({
                 </td>
                 <td className="px-4 py-3">
                   <span
-                    className="inline-flex max-w-[220px] items-center gap-1 truncate"
+                    className="app-table-primary inline-flex max-w-[220px] items-center gap-1 truncate"
                     title={v.importadoPor}
                   >
                     <User size={12} className="shrink-0" />
@@ -141,7 +141,9 @@ export function CedulaHistoryPanel({
                   </p>
                 </td>
                 <td className="px-4 py-3 text-center tabular-nums">
-                  {v.totalEntradas.toLocaleString("es-EC")}
+                  <span className="app-table-primary">
+                    {v.totalEntradas.toLocaleString("es-EC")}
+                  </span>
                 </td>
                 <td className="px-4 py-3 text-center">
                   {v.vigente ? (

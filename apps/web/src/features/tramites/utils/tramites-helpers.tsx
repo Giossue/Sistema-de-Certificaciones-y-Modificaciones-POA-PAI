@@ -1,4 +1,3 @@
-import { CheckCircle, RotateCcw, Send } from "lucide-react";
 import type { Tramite, TramiteKind } from "../types";
 
 export const money = (value?: number) =>
@@ -30,6 +29,15 @@ export const estadoLabels: Record<string, string> = {
   rechazada: "Rechazadas",
   pendiente: "Pendientes",
   reenviada: "Reenviadas",
+};
+
+const timelineLabels: Record<string, string> = {
+  solicitada: "Solicitada",
+  generada: "Generada",
+  suscrita: "Suscrita",
+  en_uso: "En uso",
+  aprobada: "Aprobada",
+  aplicada: "Aplicada",
 };
 
 export const preferredFilterOrder = [
@@ -65,22 +73,21 @@ export function quickActions(item: Tramite, rol: string) {
   if (item.kind === "certificacion") {
     if (item.estado === "solicitada" && analista)
       return [
-        { key: "aprobar", label: "Aprobar", icon: <CheckCircle size={14} /> },
+        { key: "aprobar", label: "Aprobar" },
       ];
     if (item.estado === "generada" && director)
       return [
         {
           key: "suscribir",
           label: "Suscribir",
-          icon: <CheckCircle size={14} />,
         },
       ];
     if (item.estado === "suscrita" && financiero)
       return [
-        { key: "marcar-uso", label: "Uso", icon: <CheckCircle size={14} /> },
+        { key: "marcar-uso", label: "Uso" },
       ];
     if (item.estado === "devuelta_financiero" && unidad)
-      return [{ key: "reenviar", label: "Reenviar", icon: <Send size={14} /> }];
+      return [{ key: "reenviar", label: "Reenviar" }];
   }
   if (item.kind === "modificacion") {
     if (["solicitada", "observada"].includes(item.estado) && director)
@@ -88,25 +95,24 @@ export function quickActions(item: Tramite, rol: string) {
         {
           key: "suscribir",
           label: "Suscribir",
-          icon: <CheckCircle size={14} />,
         },
       ];
     if (item.estado === "suscrita" && analista)
       return [
-        { key: "aprobar", label: "Aprobar", icon: <CheckCircle size={14} /> },
+        { key: "aprobar", label: "Aprobar" },
       ];
     if (item.estado === "aprobada" && analista)
       return [
-        { key: "aplicar", label: "Aplicar", icon: <RotateCcw size={14} /> },
+        { key: "aplicar", label: "Aplicar" },
       ];
   }
   if (item.kind === "liquidacion" && item.estado === "solicitada" && director)
     return [
-      { key: "aprobar", label: "Aprobar", icon: <CheckCircle size={14} /> },
+      { key: "aprobar", label: "Aprobar" },
     ];
   if (item.kind === "anulacion" && item.estado === "solicitada" && director)
     return [
-      { key: "aprobar", label: "Aprobar", icon: <CheckCircle size={14} /> },
+      { key: "aprobar", label: "Aprobar" },
     ];
   return [];
 }
@@ -135,7 +141,7 @@ export function timelineFor(item: Tramite) {
   const index = states.indexOf(item.estado);
   return states.map((state, position) => ({
     key: state,
-    label: state.replace(/_/g, ""),
+    label: timelineLabels[state] || state.replace(/_/g, " "),
     done: index >= 0 && position < index,
     current: state === item.estado,
   }));

@@ -279,7 +279,7 @@ export function useNuevaCertificacionPage() {
       setObservacionDialog({ id, tipo });
       return;
     }
-    await ejecutarAccion(id, tipo);
+    return ejecutarAccion(id, tipo);
   };
 
   const confirmarObservacion = async () => {

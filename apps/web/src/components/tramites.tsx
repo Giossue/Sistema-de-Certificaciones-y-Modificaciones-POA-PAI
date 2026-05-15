@@ -75,7 +75,11 @@ export function TramiteTimeline({ steps }: { steps: TimelineStep[] }) {
               step.done ? "" : step.current ? "" : "",
             )}
           >
-            <Icon size={14} /> <span>{step.label}</span>
+            <Icon
+              size={14}
+              className={step.done ? "text-emerald-600" : undefined}
+            />
+            <span>{step.label}</span>
           </div>
         );
       })}

@@ -211,13 +211,13 @@ export function useModificacionesPoaPage() {
   };
 
   const accion = async (id: string, tipo: ModificacionAccion) => {
-    if (!token) return;
+    if (!token) return false;
     if (tipo === "observar" || tipo === "reenviar") {
       setObservacionTexto("");
       setObservacionDialog({ id, tipo });
-      return;
+      return false;
     }
-    await ejecutarAccion(id, tipo);
+    return ejecutarAccion(id, tipo);
   };
 
   const confirmarObservacion = async () => {

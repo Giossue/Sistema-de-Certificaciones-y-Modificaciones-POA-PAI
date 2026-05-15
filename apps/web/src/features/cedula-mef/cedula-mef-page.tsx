@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { ConfirmDialog } from "@/components/app-ui";
 import { PageHeader } from "@/components/saas-layout";
 import { CedulaCatalogsPanel } from "./components/cedula-catalogs-panel";
 import { CedulaDiffPanel } from "./components/cedula-diff-panel";
@@ -8,6 +10,7 @@ import { useCedulaMefPage } from "./use-cedula-mef-page";
 
 export function CedulaMefPage() {
   const page = useCedulaMefPage();
+  const [importConfirmOpen, setImportConfirmOpen] = useState(false);
 
   return (
     <div className="p-6">
@@ -15,7 +18,6 @@ export function CedulaMefPage() {
       <CedulaSubmenu
         active={page.activeSection}
         onChange={page.setActiveSection}
-        totalVersiones={page.totalVersiones}
         totalCambios={page.totalCambios}
       />
       <div className="space-y-5">
@@ -35,7 +37,7 @@ export function CedulaMefPage() {
             onFileSelect={page.handleFileSelect}
             onDragOver={page.handleDragOver}
             onDrop={page.handleDrop}
-            onUpload={page.handleUpload}
+            onUpload={() => setImportConfirmOpen(true)}
             onClearFile={() => page.setSelectedFile(null)}
             formatearFecha={page.formatearFecha}
           />
@@ -77,6 +79,26 @@ export function CedulaMefPage() {
           />
         )}
       </div>
+      <ConfirmDialog
+        open={importConfirmOpen}
+        title="Importar cédula MEF"
+        description={
+          page.selectedFile
+            ? `Está por importar ${page.selectedFile.name}. Esta carga puede cambiar la cédula vigente del periodo seleccionado.`
+            : "Está por importar una nueva cédula MEF."
+        }
+        confirmText="Importar cédula"
+        cancelText="Cancelar"
+        tone="warning"
+        loading={page.loading}
+        onConfirm={async () => {
+          await page.handleUpload();
+          setImportConfirmOpen(false);
+        }}
+        onClose={() => {
+          if (!page.loading) setImportConfirmOpen(false);
+        }}
+      />
     </div>
   );
 }

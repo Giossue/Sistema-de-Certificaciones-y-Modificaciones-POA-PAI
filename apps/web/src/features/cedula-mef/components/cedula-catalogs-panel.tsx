@@ -93,7 +93,7 @@ export function CedulaCatalogsPanel({
                     <p className="app-table-primary font-mono">{item.codigo}</p>
                   </td>
                   <td>
-                    <p className="app-table-secondary">{item.nombre}</p>
+                    <p className="app-table-primary">{item.nombre}</p>
                   </td>
                 </tr>
               ))}

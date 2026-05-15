@@ -27,6 +27,8 @@ export function SaldosAlertasSection({
 }: {
   resumen: SaldosResumen | null;
 }) {
+  const alertasVisibles = resumen?.alertas.slice(0, 5) || [];
+
   return (
     <AppCard padded={false}>
       <AppSectionHeader
@@ -39,14 +41,14 @@ export function SaldosAlertasSection({
         }
       />
       {!resumen || resumen.alertas.length === 0 ? (
-        <EmptyState title="Sin saldos bajos." />
+        <EmptyState title={<span className="font-normal">Sin saldos bajos</span>} />
       ) : (
         <>
           <InlineAlert tone="warning" className="m-4">
             Revise estas estructuras antes de comprometer nuevas solicitudes.
           </InlineAlert>
-          <AppTable columns={alertasColumns} minWidth={660} clientPagination>
-            {resumen.alertas.slice(0, 8).map((alerta) => (
+          <AppTable columns={alertasColumns} minWidth={660}>
+            {alertasVisibles.map((alerta) => (
               <tr key={alerta.actividadId}>
                 <td>
                   <div className="flex items-center gap-2">
@@ -54,7 +56,7 @@ export function SaldosAlertasSection({
                       size={16}
                       className={alerta.estado === "bajo" ? "" : ""}
                     />
-                    <span className="font-mono">
+                    <span className="app-table-primary font-mono">
                       {alerta.programaCodigo}/{alerta.actividadCodigo}/
                       {alerta.fuenteCodigo}
                     </span>
@@ -64,9 +66,15 @@ export function SaldosAlertasSection({
                   <p className="app-table-primary">{alerta.itemCodigo}</p>
                   <p className="app-table-secondary">{alerta.itemNombre}</p>
                 </td>
-                <td className="text-right">${money(alerta.saldoDisponible)}</td>
                 <td className="text-right">
-                  {alerta.porcentajeDisponible.toFixed(2)}%
+                  <span className="app-table-primary">
+                    ${money(alerta.saldoDisponible)}
+                  </span>
+                </td>
+                <td className="text-right">
+                  <span className="app-table-primary">
+                    {alerta.porcentajeDisponible.toFixed(2)}%
+                  </span>
                 </td>
               </tr>
             ))}

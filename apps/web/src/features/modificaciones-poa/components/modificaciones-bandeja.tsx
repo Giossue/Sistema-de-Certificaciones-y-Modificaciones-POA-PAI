@@ -1,4 +1,3 @@
-import { CheckCircle, FileText } from "lucide-react";
 import { AppButton, AppTable } from "@/components/app-ui";
 import { EstadoBadge } from "@/components/tramites";
 import { EmptyState, SectionCard } from "@/components/saas-layout";
@@ -253,7 +252,7 @@ function ModificacionActions({
         disabled={accionesDeshabilitadas}
         onClick={() => onDescargarInforme(mod.id, mod.numero)}
       >
-        <FileText size={14} /> Informe
+        Informe
       </AppButton>
       {mod.estado === "solicitada" && canSubscribe && (
         <AppButton
@@ -296,7 +295,7 @@ function ModificacionActions({
           disabled={accionesDeshabilitadas}
           onClick={() => onAccion(mod.id, "aprobar")}
         >
-          <CheckCircle size={14} /> Aprobar
+          Aprobar
         </AppButton>
       )}
       {mod.estado === "aprobada" && canApprove && (
@@ -307,7 +306,7 @@ function ModificacionActions({
           disabled={accionesDeshabilitadas}
           onClick={() => onAccion(mod.id, "aplicar")}
         >
-          <CheckCircle size={14} /> Aplicar
+          Aplicar
         </AppButton>
       )}
       {mod.estado === "solicitada" && canObserve && (

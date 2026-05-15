@@ -299,29 +299,40 @@ export function PoaActivitiesSection({
                   </p>
                 </td>
                 <td className="poa-money text-center">
-                  $
-                  {Number(a.montoPlanificado).toLocaleString("es-EC", {
-                    minimumFractionDigits: 2,
-                  })}
+                  <span className="app-table-primary">
+                    $
+                    {Number(a.montoPlanificado).toLocaleString("es-EC", {
+                      minimumFractionDigits: 2,
+                    })}
+                  </span>
                 </td>
                 <td className="poa-money text-center">
-                  $
-                  {Number(a.certificadoVigente || 0).toLocaleString("es-EC", {
-                    minimumFractionDigits: 2,
-                  })}
+                  <span className="app-table-primary">
+                    $
+                    {Number(a.certificadoVigente || 0).toLocaleString(
+                      "es-EC",
+                      {
+                        minimumFractionDigits: 2,
+                      },
+                    )}
+                  </span>
                 </td>
                 <td className="poa-money text-center">
-                  $
-                  {Number(a.bloqueadoSolicitudes || 0).toLocaleString(
-                    "es-EC",
-                    { minimumFractionDigits: 2 },
-                  )}
+                  <span className="app-table-primary">
+                    $
+                    {Number(a.bloqueadoSolicitudes || 0).toLocaleString(
+                      "es-EC",
+                      { minimumFractionDigits: 2 },
+                    )}
+                  </span>
                 </td>
                 <td className="poa-money text-center">
-                  $
-                  {saldo.toLocaleString("es-EC", {
-                    minimumFractionDigits: 2,
-                  })}
+                  <span className="app-table-primary">
+                    $
+                    {saldo.toLocaleString("es-EC", {
+                      minimumFractionDigits: 2,
+                    })}
+                  </span>
                 </td>
                 <td className="text-center">
                   <AppBadge tone={estadoTone}>{estadoLabel}</AppBadge>

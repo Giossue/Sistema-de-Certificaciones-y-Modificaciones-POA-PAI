@@ -1,12 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Trash2, CheckCircle, XCircle, Pencil } from "lucide-react";
 import { api } from "@/services/api-client";
 import { PageHeader } from "@/components/saas-layout";
 import {
   AppBadge,
   AppButton,
   AppCard,
-  AppIconButton,
   AppInput,
   AppSectionHeader,
   AppSelect,
@@ -63,12 +61,16 @@ export function UsuariosPage() {
     id: string;
     nombre: string;
     email: string;
+    password: string;
     rol: Rol;
   } | null>(null);
   const [usuarioAEliminar, setUsuarioAEliminar] = useState<Usuario | null>(
     null,
   );
+  const [usuarioEstadoPendiente, setUsuarioEstadoPendiente] =
+    useState<Usuario | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [changingStatus, setChangingStatus] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const cargar = useCallback(async () => {
@@ -105,10 +107,12 @@ export function UsuariosPage() {
     setSaving(true);
     setMessage("");
     try {
+      const password = editMode.password.trim();
       await api.put<Usuario>(`/usuarios/${editMode.id}`, {
         nombre: editMode.nombre,
         email: editMode.email,
         rol: editMode.rol,
+        ...(password ? { password } : {}),
       });
       setEditMode(null);
       setMessage("Usuario actualizado correctamente");
@@ -119,16 +123,22 @@ export function UsuariosPage() {
       setSaving(false);
     }
   };
-  const toggleActivo = async (usuario: Usuario) => {
+  const toggleActivo = async () => {
+    if (!usuarioEstadoPendiente) return;
+    const usuario = usuarioEstadoPendiente;
+    setChangingStatus(true);
     setMessage("");
     try {
       await api.put<Usuario>(`/usuarios/${usuario.id}`, {
         activo: !usuario.activo,
       });
       setMessage(usuario.activo ? "Usuario desactivado" : "Usuario activado");
+      setUsuarioEstadoPendiente(null);
       await cargar();
     } catch (err: any) {
       setMessage(err.message || "No se pudo cambiar el estado del usuario");
+    } finally {
+      setChangingStatus(false);
     }
   };
   const eliminar = async () => {
@@ -171,6 +181,7 @@ export function UsuariosPage() {
                       ? setEditMode({ ...editMode, nombre: e.target.value })
                       : setForm((f) => ({ ...f, nombre: e.target.value }))
                   }
+                  type="text"
                   placeholder="Nombre completo"
                 />
               </FormField>
@@ -217,8 +228,24 @@ export function UsuariosPage() {
                   />
                 </FormField>
               )}
+              {editMode && (
+                <FormField
+                  label="Nueva contraseña"
+                  description="Deje este campo vacío para conservar la contraseña actual"
+                  className="md:col-span-2 xl:col-span-1"
+                >
+                  <AppInput
+                    value={editMode.password}
+                    onChange={(e) =>
+                      setEditMode({ ...editMode, password: e.target.value })
+                    }
+                    type="password"
+                    placeholder="Mínimo 6 caracteres"
+                  />
+                </FormField>
+              )}
             </div>
-            <div className="app-form-actions flex-col gap-2 sm:flex-row">
+            <div className="flex flex-col justify-start gap-2 sm:flex-row">
               <AppButton
                 type="button"
                 variant="primary"
@@ -227,12 +254,13 @@ export function UsuariosPage() {
                 disabled={
                   saving ||
                   !(editMode
-                    ? editMode.nombre && editMode.email
+                    ? editMode.nombre &&
+                      editMode.email &&
+                      (!editMode.password || editMode.password.length >= 6)
                     : form.nombre && form.email && form.password.length >= 6)
                 }
                 className="app-button app-button-primary w-full whitespace-nowrap sm:w-auto"
               >
-                {!saving && <Plus size={16} />}
                 {editMode ? "Actualizar usuario" : "Crear usuario"}
               </AppButton>
               {editMode && (
@@ -281,33 +309,31 @@ export function UsuariosPage() {
                             id: usuario.id,
                             nombre: usuario.nombre,
                             email: usuario.email,
+                            password: "",
                             rol: usuario.rol,
                           })
                         }
                       >
-                        <Pencil size={14} /> Editar
+                        Editar
                       </AppButton>
-                      <AppIconButton
-                        label={usuario.activo ? "Desactivar" : "Activar"}
-                        icon={
-                          usuario.activo ? (
-                            <XCircle size={14} />
-                          ) : (
-                            <CheckCircle size={14} />
-                          )
-                        }
+                      <AppButton
+                        type="button"
                         size="sm"
-                        onClick={() => toggleActivo(usuario)}
+                        variant="secondary"
+                        onClick={() => setUsuarioEstadoPendiente(usuario)}
                         disabled={usuario.rol === "admin"}
-                      />
-                      <AppIconButton
-                        label="Eliminar"
-                        icon={<Trash2 size={14} />}
+                      >
+                        {usuario.activo ? "Desactivar" : "Activar"}
+                      </AppButton>
+                      <AppButton
+                        type="button"
                         size="sm"
                         variant="danger"
                         onClick={() => setUsuarioAEliminar(usuario)}
                         disabled={usuario.rol === "admin"}
-                      />
+                      >
+                        Eliminar
+                      </AppButton>
                     </div>
                   </div>
                 )}
@@ -324,7 +350,7 @@ export function UsuariosPage() {
                 {usuarios.map((usuario) => (
                   <tr key={usuario.id}>
                     <td className="app-table-primary">{usuario.nombre}</td>
-                    <td className="">{usuario.email}</td>
+                    <td className="app-table-secondary">{usuario.email}</td>
                     <td>
                       <AppBadge>{rolLabel[usuario.rol]}</AppBadge>
                     </td>
@@ -343,6 +369,7 @@ export function UsuariosPage() {
                               id: usuario.id,
                               nombre: usuario.nombre,
                               email: usuario.email,
+                              password: "",
                               rol: usuario.rol,
                             })
                           }
@@ -350,27 +377,24 @@ export function UsuariosPage() {
                           Editar
                         </AppButton>
                         <div className="flex gap-1">
-                          <AppIconButton
-                            label={usuario.activo ? "Desactivar" : "Activar"}
-                            icon={
-                              usuario.activo ? (
-                                <XCircle size={14} />
-                              ) : (
-                                <CheckCircle size={14} />
-                              )
-                            }
+                          <AppButton
+                            type="button"
                             size="sm"
-                            onClick={() => toggleActivo(usuario)}
+                            variant="secondary"
+                            onClick={() => setUsuarioEstadoPendiente(usuario)}
                             disabled={usuario.rol === "admin"}
-                          />
-                          <AppIconButton
-                            label="Eliminar"
-                            icon={<Trash2 size={14} />}
+                          >
+                            {usuario.activo ? "Desactivar" : "Activar"}
+                          </AppButton>
+                          <AppButton
+                            type="button"
                             size="sm"
                             variant="danger"
                             onClick={() => setUsuarioAEliminar(usuario)}
                             disabled={usuario.rol === "admin"}
-                          />
+                          >
+                            Eliminar
+                          </AppButton>
                         </div>
                       </div>
                     </td>
@@ -395,6 +419,26 @@ export function UsuariosPage() {
         onConfirm={eliminar}
         onClose={() => {
           if (!deleting) setUsuarioAEliminar(null);
+        }}
+      />
+      <ConfirmDialog
+        open={Boolean(usuarioEstadoPendiente)}
+        title={
+          usuarioEstadoPendiente?.activo
+            ? "Desactivar usuario"
+            : "Activar usuario"
+        }
+        description={
+          usuarioEstadoPendiente
+            ? `Está por ${usuarioEstadoPendiente.activo ? "desactivar" : "activar"} a ${usuarioEstadoPendiente.nombre}. Esto cambiará su acceso al sistema.`
+            : undefined
+        }
+        tone={usuarioEstadoPendiente?.activo ? "warning" : "info"}
+        confirmText={usuarioEstadoPendiente?.activo ? "Desactivar" : "Activar"}
+        loading={changingStatus}
+        onConfirm={toggleActivo}
+        onClose={() => {
+          if (!changingStatus) setUsuarioEstadoPendiente(null);
         }}
       />
     </div>

@@ -1,5 +1,5 @@
 import { Button } from "@heroui/react";
-import { Loader, Send } from "lucide-react";
+import { FileUp, Loader, X } from "lucide-react";
 import { SectionCard } from "@/components/saas-layout";
 import type {
   Actividad,
@@ -156,7 +156,7 @@ export function NuevaCertificacionForm({
             />
           </div>
         </div>
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="mt-4 max-w-xl space-y-4">
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -168,22 +168,66 @@ export function NuevaCertificacionForm({
           </label>
           <div>
             <label className="block mb-1.5">Documentos habilitantes</label>
-            <input
-              type="file"
-              multiple
-              onChange={(e) => setDocumentos(Array.from(e.target.files || []))}
-              className="w-full"
-            />
-            <p className="mt-1">{documentos.length} archivo(s) seleccionado(s)</p>
+            <label className="flex cursor-pointer flex-col items-center justify-center rounded border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center transition hover:border-slate-400 hover:bg-slate-100">
+              <FileUp size={22} className="mb-2 text-slate-600" />
+              <span className="app-table-primary">
+                Seleccione documentos habilitantes
+              </span>
+              <span className="app-table-secondary mt-1">
+                Puede adjuntar uno o varios archivos
+              </span>
+              <input
+                type="file"
+                multiple
+                onChange={(e) =>
+                  setDocumentos(Array.from(e.target.files || []))
+                }
+                className="sr-only"
+              />
+            </label>
+            {documentos.length === 0 ? (
+              <p className="app-table-secondary mt-2">
+                Sin archivos seleccionados
+              </p>
+            ) : (
+              <div className="mt-2 space-y-2">
+                {documentos.map((documento, index) => (
+                  <div
+                    key={`${documento.name}-${documento.size}-${index}`}
+                    className="flex items-center justify-between gap-3 rounded border border-slate-200 bg-white px-3 py-2"
+                  >
+                    <span className="min-w-0">
+                      <span className="app-table-primary block truncate">
+                        {documento.name}
+                      </span>
+                      <span className="app-table-secondary block">
+                        {formatFileSize(documento.size)}
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded border border-slate-200 text-slate-600 hover:bg-slate-50"
+                      aria-label={`Quitar ${documento.name}`}
+                      onClick={() =>
+                        setDocumentos(
+                          documentos.filter((_, current) => current !== index),
+                        )
+                      }
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
         <div className="mt-5">
           <Button
             onPress={onSubmit}
             isDisabled={!puedeEnviar || submitting}
-            className="app-button app-button-primary"
+            className="app-button app-button-primary certificacion-submit-button"
           >
-            <Send size={16} />
             {submitting ? "Enviando..." : "Enviar solicitud"}
           </Button>
         </div>
@@ -229,4 +273,10 @@ export function NuevaCertificacionForm({
       </SectionCard>
     </div>
   );
+}
+
+function formatFileSize(size: number) {
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / 1024 / 1024).toFixed(1)} MB`;
 }

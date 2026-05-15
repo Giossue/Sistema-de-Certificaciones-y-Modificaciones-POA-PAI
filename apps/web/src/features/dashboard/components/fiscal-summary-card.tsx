@@ -15,7 +15,7 @@ export function FiscalSummaryCard({
     <AppCard padded={false}>
       <AppSectionHeader title="Resumen fiscal" />
       {fiscalStats.length === 0 ? (
-        <EmptyState title="Sin periodo fiscal activo." />
+        <EmptyState title={<span className="font-normal">Sin periodo fiscal activo</span>} />
       ) : (
         <div className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-1">
           {fiscalStats.map((stat) => (

@@ -1,5 +1,5 @@
 import { Button } from "@heroui/react";
-import { DollarSign, Loader } from "lucide-react";
+import { Loader } from "lucide-react";
 import { SectionCard } from "@/components/saas-layout";
 import { formatMoney } from "@/services/money";
 import type { Certificacion } from "../types";
@@ -75,38 +75,35 @@ export function LiquidacionForm({
             </select>
           </label>
         </div>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-[180px_minmax(260px,1fr)]">
+        <div className="grid grid-cols-1 gap-4">
           <label className="block">
             <span className="mb-1.5 block">Monto parcial</span>
             <input
+              type="text"
               value={monto}
               onChange={(e) => setMonto(e.target.value)}
-              disabled={tipo === "total"}
+              readOnly={tipo === "total"}
               placeholder="0.00"
               className="app-field-input"
             />
           </label>
           <label className="block">
             <span className="mb-1.5 block">Motivo</span>
-            <input
+            <textarea
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
-              placeholder="Motivo de liquidacion"
-              className="app-field-input"
+              placeholder="Detalle el motivo de liquidacion"
+              className="app-field-input min-h-20 resize-y"
             />
           </label>
         </div>
-        <div className="app-form-actions">
+        <div className="flex justify-start">
           <Button
             onPress={onEnviar}
             isDisabled={!certificacionId || loading}
             className="app-button app-button-primary w-full sm:w-auto"
           >
-            {loading ? (
-              <Loader size={16} className="animate-spin" />
-            ) : (
-              <DollarSign size={16} />
-            )}
+            {loading && <Loader size={16} className="animate-spin" />}
             Solicitar liquidación
           </Button>
         </div>

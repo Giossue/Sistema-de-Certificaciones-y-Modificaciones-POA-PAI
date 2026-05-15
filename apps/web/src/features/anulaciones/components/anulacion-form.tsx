@@ -1,5 +1,5 @@
 import { Button } from "@heroui/react";
-import { Ban, Loader } from "lucide-react";
+import { Loader } from "lucide-react";
 import { SectionCard } from "@/components/saas-layout";
 import { formatMoney } from "@/services/money";
 import type { Certificacion } from "../types";
@@ -24,7 +24,7 @@ export function AnulacionForm({
   return (
     <SectionCard title="Nueva solicitud de anulación">
       <div className="max-w-4xl space-y-4">
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(260px,1fr)_minmax(320px,1.5fr)]">
+        <div className="grid grid-cols-1 gap-4">
           <label className="block">
             <span className="mb-1.5 block">Certificacion</span>
             <select
@@ -50,17 +50,13 @@ export function AnulacionForm({
             />
           </label>
         </div>
-        <div className="app-form-actions">
+        <div className="flex justify-start">
           <Button
             onPress={onEnviar}
             isDisabled={!certificacionId || !motivo || loading}
             className="app-button app-button-primary w-full sm:w-auto"
           >
-            {loading ? (
-              <Loader size={16} className="animate-spin" />
-            ) : (
-              <Ban size={16} />
-            )}
+            {loading && <Loader size={16} className="animate-spin" />}
             Solicitar anulación
           </Button>
         </div>

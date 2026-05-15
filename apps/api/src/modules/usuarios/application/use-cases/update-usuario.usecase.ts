@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 import { UpdateUsuarioDto } from "../dto/update-usuario.dto";
 import { NotFoundError, ValidationError } from "../../../../common/errors/http-error.map";
 
@@ -15,9 +16,15 @@ export class UpdateUsuarioUsecase {
       throw new ValidationError("No se puede desactivar un usuario administrador");
     }
 
+    const { password, ...data } = dto;
+    const passwordHash = password ? await bcrypt.hash(password, 10) : undefined;
+
     const updated = await this.prisma.usuario.update({
       where: { id },
-      data: dto,
+      data: {
+        ...data,
+        ...(passwordHash && { password: passwordHash }),
+      },
       select: {
         id: true,
         email: true,

@@ -1,12 +1,42 @@
+import { useState } from "react";
 import { AlertCircle, CheckCircle } from "lucide-react";
 import { PageHeader } from "@/components/saas-layout";
-import { AppButton, InlineAlert, ObservationDialog } from "@/components/app-ui";
+import {
+  AppButton,
+  ConfirmDialog,
+  InlineAlert,
+  ObservationDialog,
+} from "@/components/app-ui";
 import { CertificacionesBandeja } from "./components/certificaciones-bandeja";
 import { NuevaCertificacionForm } from "./components/nueva-certificacion-form";
+import type { CertificacionAccion } from "./types";
 import { useNuevaCertificacionPage } from "./use-nueva-certificacion-page";
 
 export function NuevaCertificacionPage() {
   const page = useNuevaCertificacionPage();
+  const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{
+    id: string;
+    tipo: CertificacionAccion;
+  } | null>(null);
+
+  const requestAccion = (id: string, tipo: CertificacionAccion) => {
+    if (tipo === "observar") {
+      void page.accion(id, tipo);
+      return;
+    }
+    setPendingAction({ id, tipo });
+  };
+
+  const pendingCert = pendingAction
+    ? page.certificaciones.find((cert) => cert.id === pendingAction.id)
+    : null;
+
+  const confirmarAccion = async () => {
+    if (!pendingAction) return;
+    const ok = await page.accion(pendingAction.id, pendingAction.tipo);
+    if (ok) setPendingAction(null);
+  };
 
   return (
     <div className="p-6">
@@ -44,7 +74,7 @@ export function NuevaCertificacionPage() {
           setDocumentos={page.setDocumentos}
           submitting={page.submitting}
           puedeEnviar={page.puedeEnviar}
-          onSubmit={page.handleSubmit}
+          onSubmit={() => setSubmitConfirmOpen(true)}
           loadingSaldo={page.loadingSaldo}
           saldo={page.saldo}
           montoNum={page.montoNum}
@@ -59,7 +89,7 @@ export function NuevaCertificacionPage() {
           pageSize={page.pageSize}
           onPageChange={page.setCurrentPage}
           onItemsPerPageChange={page.setPageSize}
-          onAccion={page.accion}
+          onAccion={requestAccion}
           onDescargar={page.descargar}
           canApprove={page.canApprove}
           canObserve={page.canObserve}
@@ -76,8 +106,88 @@ export function NuevaCertificacionPage() {
         onClose={page.cerrarObservacion}
         onConfirm={page.confirmarObservacion}
       />
+      <ConfirmDialog
+        open={Boolean(pendingAction)}
+        title={
+          pendingAction
+            ? certificacionConfirmTitle(pendingAction.tipo)
+            : "Confirmar acción"
+        }
+        description={
+          pendingAction
+            ? certificacionConfirmDescription(
+                pendingAction.tipo,
+                pendingCert?.numero || "certificación pendiente",
+              )
+            : undefined
+        }
+        confirmText={
+          pendingAction
+            ? certificacionConfirmText(pendingAction.tipo)
+            : "Confirmar"
+        }
+        cancelText="Cancelar"
+        tone="info"
+        loading={page.accionLoading}
+        onConfirm={confirmarAccion}
+        onClose={() => {
+          if (!page.accionLoading) setPendingAction(null);
+        }}
+      />
+      <ConfirmDialog
+        open={submitConfirmOpen}
+        title="Enviar solicitud"
+        description="Está por enviar una nueva certificación. Revise periodo, estructura presupuestaria, monto y documentos habilitantes antes de continuar."
+        confirmText="Enviar solicitud"
+        cancelText="Cancelar"
+        tone="info"
+        loading={page.submitting}
+        onConfirm={async () => {
+          await page.handleSubmit();
+          setSubmitConfirmOpen(false);
+        }}
+        onClose={() => {
+          if (!page.submitting) setSubmitConfirmOpen(false);
+        }}
+      />
     </div>
   );
+}
+
+function certificacionConfirmTitle(tipo: CertificacionAccion) {
+  const labels: Record<CertificacionAccion, string> = {
+    aprobar: "Confirmar aprobación",
+    suscribir: "Confirmar suscripción",
+    observar: "Confirmar observación",
+    "marcar-uso": "Confirmar uso",
+    reenviar: "Confirmar reenvío",
+  };
+  return labels[tipo];
+}
+
+function certificacionConfirmText(tipo: CertificacionAccion) {
+  const labels: Record<CertificacionAccion, string> = {
+    aprobar: "Aprobar",
+    suscribir: "Suscribir",
+    observar: "Observar",
+    "marcar-uso": "Marcar uso",
+    reenviar: "Reenviar",
+  };
+  return labels[tipo];
+}
+
+function certificacionConfirmDescription(
+  tipo: CertificacionAccion,
+  numero: string,
+) {
+  const copy: Record<CertificacionAccion, string> = {
+    aprobar: "aprobar esta certificación y generar sus documentos",
+    suscribir: "suscribir esta certificación",
+    observar: "registrar una observación",
+    "marcar-uso": "marcar esta certificación como en uso",
+    reenviar: "reenviar esta certificación para revisión",
+  };
+  return `Está por ${copy[tipo]}: ${numero}. Revise que la certificación y el estado sean correctos antes de continuar.`;
 }
 
 function CertificacionHeader({
@@ -94,7 +204,7 @@ function CertificacionHeader({
       title="Certificaciones POA/PAI"
       description="Solicitud, revisión, suscripción y documentos emitidos"
       actions={
-        <div className="section-card flex">
+        <div className="section-card app-segmented-tabs">
           {canCreate && (
             <AppButton
               type="button"

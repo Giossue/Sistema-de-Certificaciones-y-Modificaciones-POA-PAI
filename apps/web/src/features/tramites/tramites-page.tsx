@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ConfirmDialog } from "@/components/app-ui";
 import { InlineMessage, PageHeader } from "@/components/saas-layout";
 import { useAuth } from "@/features/auth/use-auth";
 import { TramiteDetail } from "./components/tramite-detail";
@@ -31,6 +32,10 @@ export function TramitesPage() {
   const [totalItems, setTotalItems] = useState(0);
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [message, setMessage] = useState<TramitesMessage | null>(null);
+  const [pendingAction, setPendingAction] = useState<{
+    item: Tramite;
+    action: string;
+  } | null>(null);
 
   const cargar = useCallback(async () => {
     if (!token) return;
@@ -107,20 +112,31 @@ export function TramitesPage() {
     action: string,
     body?: Record<string, unknown>,
   ) => {
-    if (!token) return;
+    if (!token) return false;
     const response = await ejecutarAccionTramite(item, action, body);
-    if (!response) return;
+    if (!response) return false;
     const { res, data } = response;
     if (!res.ok) {
       setMessage({
         type: "error",
         text: data.error || "No se pudo ejecutar la acción",
       });
-      return;
+      return false;
     }
     setMessage({ type: "ok", text: "Trámite actualizado" });
     setSelected(null);
     await cargar();
+    return true;
+  };
+
+  const requestAction = (item: Tramite, action: string) => {
+    setPendingAction({ item, action });
+  };
+
+  const confirmPendingAction = async () => {
+    if (!pendingAction) return;
+    const ok = await postAction(pendingAction.item, pendingAction.action);
+    if (ok) setPendingAction(null);
   };
 
   const handleSort = (key: string) => {
@@ -157,7 +173,7 @@ export function TramitesPage() {
         paginados={paginados}
         userRole={userRole}
         setSelected={setSelected}
-        postAction={postAction}
+        postAction={requestAction}
         page={page}
         totalPages={totalPages}
         setPageSize={setPageSize}
@@ -168,9 +184,59 @@ export function TramitesPage() {
           selected={selected}
           userRole={userRole}
           onClose={() => setSelected(null)}
-          postAction={postAction}
+          postAction={requestAction}
         />
       )}
+      <ConfirmDialog
+        open={Boolean(pendingAction)}
+        title={pendingAction ? confirmActionTitle(pendingAction.action) : ""}
+        description={
+          pendingAction
+            ? confirmActionDescription(
+                pendingAction.item,
+                pendingAction.action,
+              )
+            : undefined
+        }
+        confirmText={pendingAction ? confirmActionText(pendingAction.action) : "Confirmar"}
+        cancelText="Cancelar"
+        tone={pendingAction?.action === "aplicar" ? "warning" : "info"}
+        onConfirm={confirmPendingAction}
+        onClose={() => setPendingAction(null)}
+      />
     </div>
   );
+}
+
+function confirmActionTitle(action: string) {
+  const labels: Record<string, string> = {
+    aprobar: "Confirmar aprobación",
+    suscribir: "Confirmar suscripción",
+    aplicar: "Confirmar aplicación",
+    "marcar-uso": "Confirmar uso",
+    reenviar: "Confirmar reenvío",
+  };
+  return labels[action] || "Confirmar acción";
+}
+
+function confirmActionText(action: string) {
+  const labels: Record<string, string> = {
+    aprobar: "Aprobar",
+    suscribir: "Suscribir",
+    aplicar: "Aplicar",
+    "marcar-uso": "Marcar uso",
+    reenviar: "Reenviar",
+  };
+  return labels[action] || "Confirmar";
+}
+
+function confirmActionDescription(item: Tramite, action: string) {
+  const actionCopy: Record<string, string> = {
+    aprobar: "aprobar este trámite y avanzar su flujo",
+    suscribir: "suscribir este trámite",
+    aplicar: "aplicar este trámite y registrar sus efectos",
+    "marcar-uso": "marcar esta certificación como en uso",
+    reenviar: "reenviar este trámite para continuar su revisión",
+  };
+  return `Está por ${actionCopy[action] || "ejecutar esta acción"}: ${item.numero}. Revise que el trámite y el estado sean correctos antes de continuar.`;
 }

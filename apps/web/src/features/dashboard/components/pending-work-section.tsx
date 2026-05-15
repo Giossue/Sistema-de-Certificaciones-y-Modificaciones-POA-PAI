@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, CheckCircle } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { AppCard, AppSectionHeader, AppTable, EmptyState } from "@/components/app-ui";
 import { EstadoBadge } from "@/components/tramites";
 import type { Certificacion } from "../types";
@@ -20,6 +20,8 @@ export function PendingWorkSection({
   userRole: string;
   pendientes: Certificacion[];
 }) {
+  const pendientesVisibles = pendientes.slice(0, 3);
+
   return (
     <AppCard padded={false}>
       <AppSectionHeader
@@ -33,13 +35,15 @@ export function PendingWorkSection({
       />
       {pendientes.length === 0 ? (
         <EmptyState
-          icon={<CheckCircle size={24} />}
-          title="Sin trámites pendientes para este rol"
-          description="La bandeja queda limpia. Use los accesos de trabajo para consultar saldos o crear nuevas solicitudes."
+          title={
+            <span className="font-normal">
+              Sin trámites pendientes para este rol
+            </span>
+          }
         />
       ) : (
-        <AppTable columns={pendientesColumns} minWidth={660} clientPagination>
-          {pendientes.map((cert) => (
+        <AppTable columns={pendientesColumns} minWidth={660}>
+          {pendientesVisibles.map((cert) => (
             <tr key={cert.id}>
               <td>
                 <p className="app-table-primary font-mono">
@@ -58,8 +62,14 @@ export function PendingWorkSection({
                   {cert.actividad?.fuenteCodigo || "-"}
                 </p>
               </td>
-              <td className="">{cert.solicitante?.nombre || "-"}</td>
-              <td className="text-right">${money(cert.monto)}</td>
+              <td>
+                <span className="app-table-primary">
+                  {cert.solicitante?.nombre || "-"}
+                </span>
+              </td>
+              <td className="text-right">
+                <span className="app-table-primary">${money(cert.monto)}</span>
+              </td>
               <td>
                 <EstadoBadge estado={cert.estado} />
               </td>
