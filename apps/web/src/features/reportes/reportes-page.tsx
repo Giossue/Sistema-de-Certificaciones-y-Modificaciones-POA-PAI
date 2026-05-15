@@ -9,6 +9,8 @@ import {
   SectionCard,
 } from "@/components/saas-layout";
 import { AppTable } from "@/components/app-ui";
+import { ApiError, api } from "@/services/api-client";
+
 interface PeriodoFiscal {
   id: string;
   anio: number;
@@ -25,6 +27,8 @@ const devolucionesColumns = [
   { key: "concepto", label: "Concepto", width: "360px" },
   { key: "total", label: "Total", align: "center" as const, width: "100px" },
 ];
+type ApiData<T> = { data?: T; error?: string };
+
 export function ReportesPage() {
   const { user } = useAuth();
   const [periodos, setPeriodos] = useState<PeriodoFiscal[]>([]);
@@ -42,70 +46,70 @@ export function ReportesPage() {
   const cargarReporte = async (periodoId = periodoFiscalId) => {
     if (!token || !periodoId) return;
     setLoading(true);
-    const res = await fetch(`/api/v1/reportes/direccion/${periodoId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await res.json();
-    if (res.ok) setReporte(data.data);
-    setLoading(false);
+    try {
+      const data = await api.get<ApiData<any>>(
+        `/api/v1/reportes/direccion/${periodoId}`,
+      );
+      setReporte(data.data);
+    } catch (error) {
+      if (error instanceof ApiError) setMessage(error.message);
+      else throw error;
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(() => {
     const cargar = async () => {
       if (!token) return;
-      const [periodosRes, causasRes] = await Promise.all([
-        fetch("/api/v1/periodos-fiscales", {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch("/api/v1/devoluciones-financiero/causas", {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+      const [lista, causasData] = await Promise.all([
+        api.get<PeriodoFiscal[]>("/api/v1/periodos-fiscales"),
+        api
+          .get<ApiData<string[]>>("/api/v1/devoluciones-financiero/causas")
+          .catch((error) => {
+            if (error instanceof ApiError) return null;
+            throw error;
+          }),
       ]);
-      const lista: PeriodoFiscal[] = await periodosRes.json();
       setPeriodos(lista || []);
       const activo = (lista || []).find((p) => p.activo) || lista?.[0];
       if (activo) {
         setPeriodoFiscalId(activo.id);
         cargarReporte(activo.id);
       }
-      if (causasRes.ok) setCausas((await causasRes.json()).data || []);
+      if (causasData) setCausas(causasData.data || []);
     };
     cargar();
   }, []);
   const registrarDevolucion = async () => {
     if (!token) return;
-    const res = await fetch("/api/v1/devoluciones-financiero", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ causa, descripcion }),
-    });
-    const data = await res.json();
-    if (!res.ok) setMessage(data.error || "No se pudo registrar");
-    else {
+    try {
+      await api.post("/api/v1/devoluciones-financiero", {
+        causa,
+        descripcion,
+      });
       setMessage("Devolución registrada");
       setDescripcion("");
       await cargarReporte();
+    } catch (error) {
+      if (error instanceof ApiError) {
+        const data = error.data as ApiData<unknown> | undefined;
+        setMessage(data?.error || error.message || "No se pudo registrar");
+        return;
+      }
+      throw error;
     }
   };
   const exportar = async (formato: "xlsx" | "pdf") => {
     if (!periodoFiscalId || !token) return;
-    const res = await fetch(
-      `/api/v1/reportes/direccion/${periodoFiscalId}/export.${formato}`,
-      { headers: { Authorization: `Bearer ${token}` } },
-    );
-    if (!res.ok) {
+    try {
+      await api.download(
+        `/api/v1/reportes/direccion/${periodoFiscalId}/export.${formato}`,
+        `reporte-direccion.${formato}`,
+      );
+    } catch (error) {
+      if (!(error instanceof ApiError)) throw error;
       setMessage("No se pudo exportar el reporte");
-      return;
     }
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `reporte-direccion.${formato}`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
   return (
     <div className="p-6">

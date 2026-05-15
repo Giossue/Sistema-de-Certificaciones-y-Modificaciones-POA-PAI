@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/features/auth/use-auth";
 import { PageHeader } from "@/components/saas-layout";
-import { Loader } from "lucide-react";
-import { getAuthToken } from "@/services/auth-headers";
+import { InlineAlert } from "@/components/app-ui";
+import { getAuthToken } from "@/services/api-client";
 import { DashboardActionsCard } from "./components/dashboard-actions-card";
 import { FiscalSummaryCard } from "./components/fiscal-summary-card";
 import { PendingWorkSection } from "./components/pending-work-section";
@@ -66,9 +66,9 @@ export function DashboardPage() {
         }
         actions={
           loading && (
-            <div className="flex items-center gap-2">
-              <Loader size={16} className="animate-spin" /> Cargando
-            </div>
+            <InlineAlert tone="info" className="m-0">
+              Cargando
+            </InlineAlert>
           )
         }
       />

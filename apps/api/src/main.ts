@@ -23,6 +23,20 @@ import reportesRoutes from "./modules/reportes/presentation/routes/reportes.rout
 import tramitesRoutes from "./modules/tramites/presentation/routes/tramites.routes";
 
 const app = new Hono();
+const allowedCorsOrigins = env.CORS_ORIGINS.split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+if (env.NODE_ENV === "production" && allowedCorsOrigins.includes("*")) {
+  throw new Error("CORS_ORIGINS no puede contener '*' en producción");
+}
+
+function resolveCorsOrigin(origin: string) {
+  if (!origin) return allowedCorsOrigins[0] || "";
+  if (allowedCorsOrigins.includes(origin)) return origin;
+  if (env.NODE_ENV !== "production" && allowedCorsOrigins.includes("*")) return origin;
+  return "";
+}
 
 app.use(logger());
 app.use(async (c, next) => {
@@ -39,7 +53,7 @@ app.use(async (c, next) => {
     });
   }
 });
-app.use(cors({ origin: "*" }));
+app.use(cors({ origin: resolveCorsOrigin }));
 
 app.onError((err, c) => {
   const httpError = mapDomainErrorToHttp(err);

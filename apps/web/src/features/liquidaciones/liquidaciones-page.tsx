@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { InlineMessage, PageHeader } from "@/components/saas-layout";
+import { ObservationDialog } from "@/components/app-ui";
 import { useAuth } from "@/features/auth/use-auth";
 import { LiquidacionForm } from "./components/liquidacion-form";
 import { LiquidacionesTable } from "./components/liquidaciones-table";
@@ -26,6 +27,9 @@ export function LiquidacionesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [totalLiquidaciones, setTotalLiquidaciones] = useState(0);
+  const [rechazoId, setRechazoId] = useState<string | null>(null);
+  const [motivoRechazo, setMotivoRechazo] = useState("");
+  const [rechazando, setRechazando] = useState(false);
   const token = localStorage.getItem("poa_token");
 
   const cargar = useCallback(async () => {
@@ -78,16 +82,28 @@ export function LiquidacionesPage() {
     }
   };
 
+  const ejecutarRechazo = async () => {
+    if (!token) return;
+    if (!rechazoId || !motivoRechazo.trim()) return;
+    setRechazando(true);
+    try {
+      const { res, data } = await rechazarLiquidacion(rechazoId, motivoRechazo);
+      if (!res.ok) setMessage(data.error || "No se pudo rechazar");
+      else {
+        setMessage("Liquidación rechazada");
+        setRechazoId(null);
+        setMotivoRechazo("");
+        await cargar();
+      }
+    } finally {
+      setRechazando(false);
+    }
+  };
+
   const rechazar = async (id: string) => {
     if (!token) return;
-    const motivoRechazo = window.prompt("Motivo de rechazo");
-    if (!motivoRechazo) return;
-    const { res, data } = await rechazarLiquidacion(id, motivoRechazo);
-    if (!res.ok) setMessage(data.error || "No se pudo rechazar");
-    else {
-      setMessage("Liquidación rechazada");
-      await cargar();
-    }
+    setMotivoRechazo("");
+    setRechazoId(id);
   };
 
   const canApprove = ["admin", "director", "analista"].includes(
@@ -130,6 +146,23 @@ export function LiquidacionesPage() {
           onRechazar={rechazar}
         />
       </div>
+      <ObservationDialog
+        open={Boolean(rechazoId)}
+        title="Rechazar liquidación"
+        description="Ingrese el motivo de rechazo para continuar."
+        label="Motivo de rechazo"
+        placeholder="Detalle el motivo"
+        value={motivoRechazo}
+        onChange={setMotivoRechazo}
+        required
+        tone="danger"
+        confirmText="Rechazar"
+        loading={rechazando}
+        onConfirm={ejecutarRechazo}
+        onClose={() => {
+          if (!rechazando) setRechazoId(null);
+        }}
+      />
     </div>
   );
 }

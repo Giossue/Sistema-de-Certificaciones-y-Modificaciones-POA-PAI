@@ -1,5 +1,5 @@
 import { Context } from "hono";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../../../database/prisma";
 import { auditoriaMeta, AuditoriaService } from "../../../auditoria/infrastructure/auditoria.service";
 import { listarAnulaciones } from "../../application/queries/listar-anulaciones.query";
 import { aprobarAnulacion } from "../../application/use-cases/aprobar-anulacion.usecase";
@@ -7,7 +7,7 @@ import { crearAnulacion } from "../../application/use-cases/crear-anulacion.usec
 import { rechazarAnulacion } from "../../application/use-cases/rechazar-anulacion.usecase";
 import { userFrom } from "../../../../common/http/context.helpers";
 
-const prisma = new PrismaClient();
+
 const auditoriaService = new AuditoriaService(prisma);
 
 export class AnulacionesController {

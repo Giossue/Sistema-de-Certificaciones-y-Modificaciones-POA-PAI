@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+import { AppCard, AppSectionHeader } from "@/components/app-ui";
 import type { DashboardAction } from "../types";
 
 export function DashboardActionsCard({
@@ -8,10 +9,8 @@ export function DashboardActionsCard({
   actions: DashboardAction[];
 }) {
   return (
-    <section className="section-card">
-      <div className="section-card-header">
-        <h2 className="">Accesos de trabajo</h2>
-      </div>
+    <AppCard padded={false}>
+      <AppSectionHeader title="Accesos de trabajo" />
       <div className="divide-y divide-slate-100">
         {actions.map(({ label, description, href, icon: Icon }) => (
           <Link key={href} to={href} className="app-list-item">
@@ -24,6 +23,6 @@ export function DashboardActionsCard({
           </Link>
         ))}
       </div>
-    </section>
+    </AppCard>
   );
 }

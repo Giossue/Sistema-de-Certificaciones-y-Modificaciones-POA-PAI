@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { InlineMessage, PageHeader } from "@/components/saas-layout";
+import { ObservationDialog } from "@/components/app-ui";
 import { useAuth } from "@/features/auth/use-auth";
 import { AnulacionForm } from "./components/anulacion-form";
 import { AnulacionesTable } from "./components/anulaciones-table";
@@ -24,6 +25,9 @@ export function AnulacionesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [totalAnulaciones, setTotalAnulaciones] = useState(0);
+  const [rechazoId, setRechazoId] = useState<string | null>(null);
+  const [motivoRechazo, setMotivoRechazo] = useState("");
+  const [rechazando, setRechazando] = useState(false);
 
   const cargar = useCallback(async () => {
     if (!token) return;
@@ -68,16 +72,28 @@ export function AnulacionesPage() {
     }
   };
 
+  const ejecutarRechazo = async () => {
+    if (!token) return;
+    if (!rechazoId || !motivoRechazo.trim()) return;
+    setRechazando(true);
+    try {
+      const { res, data } = await rechazarAnulacion(rechazoId, motivoRechazo);
+      if (!res.ok) setMessage(data.error || "No se pudo rechazar");
+      else {
+        setMessage("Anulación rechazada");
+        setRechazoId(null);
+        setMotivoRechazo("");
+        await cargar();
+      }
+    } finally {
+      setRechazando(false);
+    }
+  };
+
   const rechazar = async (id: string) => {
     if (!token) return;
-    const motivoRechazo = window.prompt("Motivo de rechazo");
-    if (!motivoRechazo) return;
-    const { res, data } = await rechazarAnulacion(id, motivoRechazo);
-    if (!res.ok) setMessage(data.error || "No se pudo rechazar");
-    else {
-      setMessage("Anulación rechazada");
-      await cargar();
-    }
+    setMotivoRechazo("");
+    setRechazoId(id);
   };
 
   const canApprove = ["admin", "director"].includes(user?.rol || "");
@@ -112,6 +128,23 @@ export function AnulacionesPage() {
           onRechazar={rechazar}
         />
       </div>
+      <ObservationDialog
+        open={Boolean(rechazoId)}
+        title="Rechazar anulación"
+        description="Ingrese el motivo de rechazo para continuar."
+        label="Motivo de rechazo"
+        placeholder="Detalle el motivo"
+        value={motivoRechazo}
+        onChange={setMotivoRechazo}
+        required
+        tone="danger"
+        confirmText="Rechazar"
+        loading={rechazando}
+        onConfirm={ejecutarRechazo}
+        onClose={() => {
+          if (!rechazando) setRechazoId(null);
+        }}
+      />
     </div>
   );
 }

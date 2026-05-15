@@ -9,6 +9,8 @@ Actividad nueva: {{actividadNueva}}
 Item anterior: {{itemAnterior}}
 Item nuevo: {{itemNuevo}}
 Fuente de financiamiento: {{fuente}}
+Responsable nuevo: {{responsableNuevo}}
 Monto anterior: USD {{montoAnterior}}
 Monto nuevo: USD {{montoNuevo}}
+{{justificacionLinea}}
 Documento generado automaticamente por el sistema.

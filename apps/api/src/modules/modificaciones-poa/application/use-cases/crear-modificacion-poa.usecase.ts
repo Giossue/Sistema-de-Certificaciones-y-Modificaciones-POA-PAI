@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { NotFoundError, ValidationError } from "../../../../common/errors/http-error.map";
 import { AuditoriaParams, AuditoriaService } from "../../../auditoria/infrastructure/auditoria.service";
 import { motivosBase } from "../../domain/constants/modificacion-motivos.constants";
@@ -17,6 +17,46 @@ type CrearModificacionPoaParams = {
   body: any;
   auditMeta: AuditMeta;
 };
+
+const MODIFICACION_CORRELATIVO_TIPO = "MOD";
+
+async function obtenerSiguienteNumeroModificacion(
+  tx: Prisma.TransactionClient,
+  periodoFiscalId: string,
+  anio: number,
+) {
+  const numeroPattern = `^${MODIFICACION_CORRELATIVO_TIPO}-${anio}-[0-9]+$`;
+
+  await tx.$executeRaw`
+    INSERT INTO "correlativos" ("tipo", "anio", "ultimo_numero")
+    VALUES (
+      ${MODIFICACION_CORRELATIVO_TIPO},
+      ${anio},
+      COALESCE((
+        SELECT MAX(split_part("numero", '-', 3)::INTEGER)
+        FROM "modificaciones_poa"
+        WHERE "periodo_fiscal_id"::TEXT = ${periodoFiscalId}
+          AND "numero" ~ ${numeroPattern}
+      ), 0)
+    )
+    ON CONFLICT ("tipo", "anio") DO NOTHING
+  `;
+
+  const [correlativo] = await tx.$queryRaw<{ ultimo_numero: number }[]>`
+    UPDATE "correlativos"
+    SET "ultimo_numero" = "ultimo_numero" + 1,
+        "updated_at" = CURRENT_TIMESTAMP
+    WHERE "tipo" = ${MODIFICACION_CORRELATIVO_TIPO}
+      AND "anio" = ${anio}
+    RETURNING "ultimo_numero"
+  `;
+
+  if (!correlativo) {
+    throw new ValidationError("No se pudo generar el correlativo de modificación POA");
+  }
+
+  return `${MODIFICACION_CORRELATIVO_TIPO}-${anio}-${String(correlativo.ultimo_numero).padStart(4, "0")}`;
+}
 
 export async function crearModificacionPoa(params: CrearModificacionPoaParams) {
   const { prisma, documentosService, auditoriaService, user, body, auditMeta } = params;
@@ -54,45 +94,53 @@ export async function crearModificacionPoa(params: CrearModificacionPoaParams) {
   });
   if (!entrada) throw new ValidationError("La nueva estructura no consta en la cédula MEF vigente");
 
-  const totalPeriodo = await prisma.modificacionPoa.count({ where: { periodoFiscalId: actividad.poaVersion.periodoFiscalId } });
-  const numero = `MOD-${actividad.poaVersion.periodoFiscal.anio}-${String(totalPeriodo + 1).padStart(4, "0")}`;
+  const mod = await prisma.$transaction(async (tx) => {
+    const numero = await obtenerSiguienteNumeroModificacion(
+      tx,
+      actividad.poaVersion.periodoFiscalId,
+      actividad.poaVersion.periodoFiscal.anio,
+    );
 
-  const mod = await prisma.modificacionPoa.create({
-    data: {
-      numero,
-      periodoFiscalId: actividad.poaVersion.periodoFiscalId,
-      actividadOrigenId: actividad.id,
-      solicitanteId: user.id,
-      estado: "solicitada",
-      motivo,
-      programaCodigoAnterior: actividad.programaCodigo,
-      programaNombreAnterior: actividad.programaNombre,
-      actividadCodigoAnterior: actividad.actividadCodigo,
-      actividadNombreAnterior: actividad.actividadNombre,
-      itemCodigoAnterior: actividad.itemCodigo,
-      itemNombreAnterior: actividad.itemNombre,
-      fuenteCodigo: actividad.fuenteCodigo,
-      fuenteNombre: actividad.fuenteNombre,
-      responsableAnteriorId: actividad.responsableUsuarioId,
-      responsableAnteriorNombre: actividad.responsableNombre,
-      montoPlanificadoAnterior: actividad.montoPlanificado,
-      programaCodigoNuevo: programaCodigo,
-      programaNombreNuevo: entrada.programaNombre,
-      actividadCodigoNuevo: actividadCodigo,
-      actividadNombreNuevo: entrada.actividadNombre,
-      itemCodigoNuevo: itemCodigo,
-      itemNombreNuevo: entrada.itemNombre,
-      responsableNuevoId,
-      responsableNuevoNombre,
-      observacionBienes,
-      tipoDiscrepancia,
-      montoPlanificadoNuevo: montoNuevo,
-    },
+    return tx.modificacionPoa.create({
+      data: {
+        numero,
+        periodoFiscalId: actividad.poaVersion.periodoFiscalId,
+        actividadOrigenId: actividad.id,
+        solicitanteId: user.id,
+        estado: "solicitada",
+        motivo,
+        programaCodigoAnterior: actividad.programaCodigo,
+        programaNombreAnterior: actividad.programaNombre,
+        actividadCodigoAnterior: actividad.actividadCodigo,
+        actividadNombreAnterior: actividad.actividadNombre,
+        itemCodigoAnterior: actividad.itemCodigo,
+        itemNombreAnterior: actividad.itemNombre,
+        fuenteCodigo: actividad.fuenteCodigo,
+        fuenteNombre: actividad.fuenteNombre,
+        responsableAnteriorId: actividad.responsableUsuarioId,
+        responsableAnteriorNombre: actividad.responsableNombre,
+        montoPlanificadoAnterior: actividad.montoPlanificado,
+        programaCodigoNuevo: programaCodigo,
+        programaNombreNuevo: entrada.programaNombre,
+        actividadCodigoNuevo: actividadCodigo,
+        actividadNombreNuevo: entrada.actividadNombre,
+        itemCodigoNuevo: itemCodigo,
+        itemNombreNuevo: entrada.itemNombre,
+        responsableNuevoId,
+        responsableNuevoNombre,
+        observacionBienes,
+        tipoDiscrepancia,
+        montoPlanificadoNuevo: montoNuevo,
+      },
+    });
   });
+  if (!mod.numero) {
+    throw new ValidationError("No se pudo generar el número de modificación POA");
+  }
 
   const informeRuta = await documentosService.generarInformeTecnico({
     id: mod.id,
-    numero,
+    numero: mod.numero,
     motivo,
     programaAnterior: `${actividad.programaCodigo} - ${actividad.programaNombre}`,
     programaNuevo: `${programaCodigo} - ${entrada.programaNombre}`,
@@ -101,8 +149,10 @@ export async function crearModificacionPoa(params: CrearModificacionPoaParams) {
     itemAnterior: `${actividad.itemCodigo} - ${actividad.itemNombre}`,
     itemNuevo: `${itemCodigo} - ${entrada.itemNombre}`,
     fuente: `${actividad.fuenteCodigo} - ${actividad.fuenteNombre}`,
+    responsableNuevo: responsableNuevoNombre,
     montoAnterior: actividad.montoPlanificado.toString(),
     montoNuevo,
+    justificacionLinea: null,
     fecha: new Date(),
   });
   await prisma.modificacionPoa.update({ where: { id: mod.id }, data: { informeRuta } });

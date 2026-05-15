@@ -1,6 +1,7 @@
 import { Context, Next } from "hono";
-import { jwtVerify } from "jose";
+import { jwtVerify, type JWTPayload } from "jose";
 import { env } from "../../config/env";
+import { prisma } from "../../database/prisma";
 import { ForbiddenError, UnauthorizedError } from "../errors/http-error.map";
 
 export type Permission =
@@ -177,6 +178,22 @@ export function getPermissionsForRole(rol: string): Permission[] {
   return ROLE_PERMISSIONS[rol] ?? [];
 }
 
+type AuthTokenPayload = JWTPayload & {
+  sub: string;
+  email: string;
+  rol: string;
+  nombre: string;
+};
+
+function isAuthTokenPayload(payload: JWTPayload): payload is AuthTokenPayload {
+  return (
+    typeof payload.sub === "string" &&
+    typeof payload.email === "string" &&
+    typeof payload.rol === "string" &&
+    typeof payload.nombre === "string"
+  );
+}
+
 export async function authGuard(c: Context, next: Next) {
   const authHeader = c.req.header("authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -184,7 +201,7 @@ export async function authGuard(c: Context, next: Next) {
   }
 
   const token = authHeader.substring(7);
-  let payload: any;
+  let payload: JWTPayload;
 
   try {
     const secret = new TextEncoder().encode(env.JWT_SECRET);
@@ -194,12 +211,25 @@ export async function authGuard(c: Context, next: Next) {
     throw new UnauthorizedError("Token inválido o expirado");
   }
 
-  const rol = payload.rol as string;
+  if (!isAuthTokenPayload(payload)) {
+    throw new UnauthorizedError("Token inválido o expirado");
+  }
+
+  const usuario = await prisma.usuario.findUnique({
+    where: { id: payload.sub },
+    select: { id: true, email: true, nombre: true, rol: true, activo: true },
+  });
+
+  if (!usuario?.activo) {
+    throw new UnauthorizedError("Token inválido o expirado");
+  }
+
+  const rol = usuario.rol;
   c.set("user", {
-    id: payload.sub as string,
-    email: payload.email as string,
+    id: usuario.id,
+    email: usuario.email,
     rol,
-    nombre: payload.nombre as string,
+    nombre: usuario.nombre,
     permisos: getPermissionsForRole(rol),
   });
   await next();

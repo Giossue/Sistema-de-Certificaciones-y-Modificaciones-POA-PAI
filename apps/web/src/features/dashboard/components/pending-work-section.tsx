@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle } from "lucide-react";
-import { AppTable } from "@/components/app-ui";
+import { AppCard, AppSectionHeader, AppTable, EmptyState } from "@/components/app-ui";
 import { EstadoBadge } from "@/components/tramites";
 import type { Certificacion } from "../types";
 import { money, pendingCopyFor } from "../utils/dashboard-helpers";
@@ -21,25 +21,22 @@ export function PendingWorkSection({
   pendientes: Certificacion[];
 }) {
   return (
-    <section className="section-card">
-      <div className="section-card-header">
-        <div>
-          <h2 className="">Trabajo pendiente</h2>
-          <p className="mt-1">{pendingCopyFor(userRole)}</p>
-        </div>
+    <AppCard padded={false}>
+      <AppSectionHeader
+        title="Trabajo pendiente"
+        description={pendingCopyFor(userRole)}
+        actions={
         <Link to="/tramites" className="flex shrink-0 items-center gap-1">
           Bandeja <ArrowRight size={15} />
         </Link>
-      </div>
+        }
+      />
       {pendientes.length === 0 ? (
-        <div className="flex min-h-48 flex-col items-center justify-center px-6 py-10 text-center">
-          <CheckCircle size={24} className="mb-2" />
-          <p className="">Sin trámites pendientes para este rol</p>
-          <p className="mt-1 max-w-md">
-            La bandeja queda limpia. Use los accesos de trabajo para consultar
-            saldos o crear nuevas solicitudes.
-          </p>
-        </div>
+        <EmptyState
+          icon={<CheckCircle size={24} />}
+          title="Sin trámites pendientes para este rol"
+          description="La bandeja queda limpia. Use los accesos de trabajo para consultar saldos o crear nuevas solicitudes."
+        />
       ) : (
         <AppTable columns={pendientesColumns} minWidth={660} clientPagination>
           {pendientes.map((cert) => (
@@ -70,6 +67,6 @@ export function PendingWorkSection({
           ))}
         </AppTable>
       )}
-    </section>
+    </AppCard>
   );
 }

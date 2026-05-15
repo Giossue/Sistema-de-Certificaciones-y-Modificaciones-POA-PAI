@@ -55,6 +55,17 @@ model PeriodoFiscal {
   @@map("periodos_fiscales")
 }
 
+model Correlativo {
+  tipo         String
+  anio         Int
+  ultimoNumero Int      @default(0) @map("ultimo_numero")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@id([tipo, anio])
+  @@map("correlativos")
+}
+
 model CedulaMefVersion {
   id              String   @id @default(uuid()) @db.Uuid
   periodoFiscalId String?  @map("periodo_fiscal_id") @db.Uuid

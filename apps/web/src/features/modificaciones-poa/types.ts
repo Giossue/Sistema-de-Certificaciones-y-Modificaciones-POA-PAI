@@ -24,6 +24,9 @@ export interface Modificacion {
   numero: string;
   estado: string;
   motivo: string;
+  observaciones?: string | null;
+  observacionBienes?: string | null;
+  tipoDiscrepancia?: string | null;
   anterior: {
     programaCodigo: string;
     actividadCodigo: string;
@@ -46,7 +49,8 @@ export type ModificacionAccion =
   | "suscribir"
   | "aprobar"
   | "aplicar"
-  | "observar";
+  | "observar"
+  | "reenviar";
 
 export interface CrearModificacionPayload {
   actividadId: string;
@@ -59,4 +63,17 @@ export interface CrearModificacionPayload {
   observacionBienes: string;
   tipoDiscrepancia: string;
   montoPlanificadoNuevo: string;
+}
+
+export interface EditarModificacionObservadaPayload {
+  motivo: string;
+  programaCodigo: string;
+  actividadCodigo: string;
+  itemCodigo: string;
+  fuenteCodigo: string;
+  responsableNuevoNombre: string;
+  observacionBienes: string;
+  tipoDiscrepancia: string;
+  montoPlanificadoNuevo: string;
+  justificacion: string;
 }

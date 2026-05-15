@@ -1,5 +1,5 @@
 import { Context } from "hono";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../../../database/prisma";
 import { auditoriaMeta, AuditoriaService } from "../../../auditoria/infrastructure/auditoria.service";
 import { listarCausasDevolucion } from "../../application/queries/listar-causas-devolucion.query";
 import { listarDevolucionesFinanciero } from "../../application/queries/listar-devoluciones-financiero.query";
@@ -8,7 +8,7 @@ import { crearDevolucionFinanciero } from "../../application/use-cases/crear-dev
 import { reenviarDevolucionFinanciero } from "../../application/use-cases/reenviar-devolucion-financiero.usecase";
 import { param, userFrom } from "../../../../common/http/context.helpers";
 
-const prisma = new PrismaClient();
+
 const auditoriaService = new AuditoriaService(prisma);
 
 export class DevolucionesFinancieroController {

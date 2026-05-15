@@ -1,5 +1,5 @@
 import { Context } from "hono";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../../../database/prisma";
 import {
   CrearPoaVersionUseCase,
   ConsultarPoaVigenteUseCase,
@@ -24,7 +24,7 @@ import { AuditoriaService } from "../../../auditoria/infrastructure/auditoria.se
 import { ValidationError } from "../../../../common/errors/http-error.map";
 import { SaldosMotorService } from "../../../saldos/application/use-cases/saldos-motor.service";
 
-const prisma = new PrismaClient();
+
 const auditoriaService = new AuditoriaService(prisma);
 
 const crearPoaUseCase = new CrearPoaVersionUseCase(prisma);

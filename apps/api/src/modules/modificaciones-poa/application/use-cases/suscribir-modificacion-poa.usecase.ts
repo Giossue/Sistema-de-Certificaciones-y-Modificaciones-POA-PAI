@@ -18,7 +18,7 @@ export async function suscribirModificacionPoa(params: SuscribirModificacionPoaP
   const { prisma, auditoriaService, id, user, auditMeta } = params;
   const current = await prisma.modificacionPoa.findUnique({ where: { id } });
   if (!current) throw new NotFoundError("Modificación POA", id);
-  if (!["solicitada", "observada"].includes(current.estado)) throw new ValidationError("Solo se puede suscribir una modificación solicitada u observada");
+  if (current.estado !== "solicitada") throw new ValidationError("Solo se puede suscribir una modificación solicitada");
   await prisma.modificacionPoa.update({ where: { id }, data: { estado: "suscrita", directorId: user.id, observaciones: null } });
   await auditoriaService.registrar({ usuarioId: user.id, entidad: "ModificacionPoa", entidadId: id, accion: "SUSCRIBIR", estadoAnterior: current.estado, estadoNuevo: "suscrita", ...auditMeta, payloadAnterior: current });
   return obtenerModificacionPoa(prisma, id);

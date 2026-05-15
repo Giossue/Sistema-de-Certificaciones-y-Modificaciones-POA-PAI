@@ -1,5 +1,5 @@
 import { Context } from "hono";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../../../database/prisma";
 import { auditoriaMeta, AuditoriaService } from "../../../auditoria/infrastructure/auditoria.service";
 import { listarLiquidaciones } from "../../application/queries/listar-liquidaciones.query";
 import { aprobarLiquidacion } from "../../application/use-cases/aprobar-liquidacion.usecase";
@@ -8,7 +8,7 @@ import { rechazarLiquidacion } from "../../application/use-cases/rechazar-liquid
 import { userFrom } from "../../../../common/http/context.helpers";
 import { ValidationError } from "../../../../common/errors/http-error.map";
 
-const prisma = new PrismaClient();
+
 const auditoriaService = new AuditoriaService(prisma);
 
 export class LiquidacionesController {

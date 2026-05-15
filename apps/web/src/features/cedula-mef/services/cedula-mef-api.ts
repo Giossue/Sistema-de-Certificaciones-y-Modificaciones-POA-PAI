@@ -1,12 +1,15 @@
-import { authHeaders, getAuthToken } from "@/services/auth-headers";
-import { requestJson } from "@/services/http";
+import { ApiError, api, getAuthToken } from "@/services/api-client";
 import { queryParams } from "@/services/query-params";
 import type {
   CatalogoFiltro,
   CatalogosCedula,
+  Actividad,
   DiffResult,
+  Fuente,
   ImportResult,
+  Item,
   PeriodoFiscal,
+  Programa,
 } from "../types";
 
 interface VersionesPayload {
@@ -14,16 +17,48 @@ interface VersionesPayload {
   totalItems?: number;
 }
 
-export async function cargarPeriodosFiscales() {
-  const response = await requestJson<PeriodoFiscal[] | { error?: string }>(
-    "/api/v1/periodos-fiscales",
-    { headers: authHeaders() },
-  );
-  if (!response.ok) {
-    const data = response.data as { error?: string };
-    throw new Error(data.error || "No se pudieron cargar los periodos fiscales");
+type ApiData<T> = { data?: T; error?: string };
+type ApiActionResponse<T = any> = {
+  res: Response;
+  data: T;
+  ok: boolean;
+  status: number;
+};
+
+async function compatRequest<T>(
+  request: Promise<T>,
+): Promise<ApiActionResponse<T>> {
+  try {
+    const data = await request;
+    const res = new Response(null, { status: 200 });
+    return { res, data, ok: true, status: res.status };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      const res = new Response(null, { status: error.status });
+      return {
+        res,
+        data: error.data as T,
+        ok: false,
+        status: error.status,
+      };
+    }
+    throw error;
   }
-  return (response.data || []) as PeriodoFiscal[];
+}
+
+export async function cargarPeriodosFiscales() {
+  try {
+    return await api.get<PeriodoFiscal[]>("/api/v1/periodos-fiscales");
+  } catch (error) {
+    if (error instanceof ApiError) {
+      const data = error.data as { error?: string } | undefined;
+      throw new Error(
+        data?.error || "No se pudieron cargar los periodos fiscales",
+        { cause: error },
+      );
+    }
+    throw error;
+  }
 }
 
 export async function listarVersionesCedula(
@@ -31,16 +66,17 @@ export async function listarVersionesCedula(
   page: number,
   pageSize: number,
 ) {
-  return requestJson<{ data?: VersionesPayload }>(
-    `/api/v1/cedula-mef/versiones/${periodoFiscalId}?page=${page}&pageSize=${pageSize}`,
-    { headers: authHeaders() },
+  return compatRequest<ApiData<VersionesPayload>>(
+    api.get(
+      `/api/v1/cedula-mef/versiones/${periodoFiscalId}?page=${page}&pageSize=${pageSize}`,
+    ),
   );
 }
 
 export async function obtenerCedulaVigente(periodoFiscalId: string) {
-  return requestJson(`/api/v1/cedula-mef/vigente/${periodoFiscalId}`, {
-    headers: authHeaders(),
-  });
+  return compatRequest<ApiData<unknown>>(
+    api.get(`/api/v1/cedula-mef/vigente/${periodoFiscalId}`),
+  );
 }
 
 export async function listarCatalogosCedula(
@@ -59,48 +95,37 @@ export async function listarCatalogosCedula(
   if (filtro.item) fuenteParams.set("item", filtro.item);
 
   const [progRes, actRes, itemRes, fteRes] = await Promise.all([
-    fetch(`/api/v1/cedula-mef/${periodoFiscalId}/programas`, {
-      headers: authHeaders(),
-    }),
+    api.get<ApiData<Programa[]>>(
+      `/api/v1/cedula-mef/${periodoFiscalId}/programas`,
+    ),
     filtro.programa
-      ? fetch(
+      ? api.get<ApiData<Actividad[]>>(
           `/api/v1/cedula-mef/${periodoFiscalId}/actividades?${actividadParams.toString()}`,
-          { headers: authHeaders() },
         )
       : Promise.resolve(null),
     filtro.actividad
-      ? fetch(
+      ? api.get<ApiData<Item[]>>(
           `/api/v1/cedula-mef/${periodoFiscalId}/items?${itemParams.toString()}`,
-          { headers: authHeaders() },
         )
       : Promise.resolve(null),
     filtro.item
-      ? fetch(
+      ? api.get<ApiData<Fuente[]>>(
           `/api/v1/cedula-mef/${periodoFiscalId}/fuentes?${fuenteParams.toString()}`,
-          { headers: authHeaders() },
         )
       : Promise.resolve(null),
   ]);
 
-  const [progData, actData, itemData, fteData] = await Promise.all([
-    progRes.json(),
-    actRes ? actRes.json() : Promise.resolve({ data: [] }),
-    itemRes ? itemRes.json() : Promise.resolve({ data: [] }),
-    fteRes ? fteRes.json() : Promise.resolve({ data: [] }),
-  ]);
-
   return {
-    programas: progData.data || [],
-    actividades: actData.data || [],
-    items: itemData.data || [],
-    fuentes: fteData.data || [],
+    programas: progRes.data || [],
+    actividades: actRes?.data || [],
+    items: itemRes?.data || [],
+    fuentes: fteRes?.data || [],
   };
 }
 
 export async function compararVersionCedula(versionId: string) {
-  return requestJson<{ data?: DiffResult }>(
-    `/api/v1/cedula-mef/diff/${versionId}`,
-    { headers: authHeaders() },
+  return compatRequest<ApiData<DiffResult>>(
+    api.get(`/api/v1/cedula-mef/diff/${versionId}`),
   );
 }
 
@@ -118,17 +143,21 @@ export async function importarCedulaMef(
   formData.append("archivo", archivo);
   formData.append("periodoFiscalId", periodoFiscalId);
 
-  const res = await fetch("/api/v1/cedula-mef/importar", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
-    body: formData,
-  });
-  onResponse?.();
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || "Error al importar");
+  try {
+    const data = await api.form<ApiData<ImportResult>>(
+      "/api/v1/cedula-mef/importar",
+      formData,
+    );
+    onResponse?.();
+    return data.data as ImportResult;
+  } catch (error) {
+    onResponse?.();
+    if (error instanceof ApiError) {
+      const data = error.data as { error?: string } | undefined;
+      throw new Error(data?.error || "Error al importar", { cause: error });
+    }
+    throw error;
   }
-  return data.data;
 }
 
 export async function listarEntradasCedula(
@@ -143,9 +172,10 @@ export async function listarEntradasCedula(
   });
   if (filtro) searchParams.set("filtro", filtro);
 
-  return requestJson(
-    `/api/v1/cedula-mef/entradas/${versionId}?${searchParams.toString()}`,
-    { headers: authHeaders() },
+  return compatRequest(
+    api.get(
+      `/api/v1/cedula-mef/entradas/${versionId}?${searchParams.toString()}`,
+    ),
   );
 }
 
@@ -164,7 +194,7 @@ export async function validarCombinacionCedula(params: {
     fuenteCodigo: params.fuenteCodigo,
   });
 
-  return requestJson(`/api/v1/cedula-mef/validar?${searchParams.toString()}`, {
-    headers: authHeaders(),
-  });
+  return compatRequest(
+    api.get(`/api/v1/cedula-mef/validar?${searchParams.toString()}`),
+  );
 }

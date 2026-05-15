@@ -1,5 +1,5 @@
 import { Context } from "hono";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../../../database/prisma";
 import { descargarDocumentoCertificacion } from "../../application/queries/descargar-documento-certificacion.query";
 import { listarCertificaciones } from "../../application/queries/listar-certificaciones.query";
 import { obtenerCertificacion } from "../../application/queries/obtener-certificacion.query";
@@ -15,7 +15,7 @@ import { userFrom, param } from "../../../../common/http/context.helpers";
 import { AuditoriaService, auditoriaMeta } from "../../../auditoria/infrastructure/auditoria.service";
 import { SaldosMotorService } from "../../../saldos/application/use-cases/saldos-motor.service";
 
-const prisma = new PrismaClient();
+
 const crearCertificacionUseCase = new CrearCertificacionUseCase(prisma);
 const documentosService = new CertificacionDocumentosService();
 const auditoriaService = new AuditoriaService(prisma);

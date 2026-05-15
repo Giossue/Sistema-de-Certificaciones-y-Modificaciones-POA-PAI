@@ -7,6 +7,7 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default("8h"),
   API_PORT: z.string().default("3001"),
   API_HOST: z.string().default("0.0.0.0"),
+  CORS_ORIGINS: z.string().default("http://localhost:5173,http://localhost,http://localhost:80"),
   UPLOAD_DIR: z.string().default("./storage/uploads"),
   GENERATED_DIR: z.string().default("./storage/generated"),
   UPLOAD_MAX_SIZE_MB: z.coerce.number().positive().default(20),

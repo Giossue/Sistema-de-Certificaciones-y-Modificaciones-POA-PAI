@@ -1,3 +1,9 @@
+import {
+  AppCard,
+  AppSectionHeader,
+  EmptyState,
+  MetricCard,
+} from "@/components/app-ui";
 import type { FiscalStat } from "../types";
 
 export function FiscalSummaryCard({
@@ -6,24 +12,17 @@ export function FiscalSummaryCard({
   fiscalStats: FiscalStat[];
 }) {
   return (
-    <section className="section-card">
-      <div className="section-card-header">
-        <h2 className="">Resumen fiscal</h2>
-      </div>
-      <dl className="divide-y divide-slate-100">
-        {fiscalStats.map((stat) => (
-          <div
-            key={stat.label}
-            className="flex items-center justify-between gap-4 px-4 py-3"
-          >
-            <dt className="">{stat.label}</dt>
-            <dd className="">{stat.value}</dd>
-          </div>
-        ))}
-        {fiscalStats.length === 0 && (
-          <p className="p-4">Sin periodo fiscal activo.</p>
-        )}
-      </dl>
-    </section>
+    <AppCard padded={false}>
+      <AppSectionHeader title="Resumen fiscal" />
+      {fiscalStats.length === 0 ? (
+        <EmptyState title="Sin periodo fiscal activo." />
+      ) : (
+        <div className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-1">
+          {fiscalStats.map((stat) => (
+            <MetricCard key={stat.label} label={stat.label} value={stat.value} />
+          ))}
+        </div>
+      )}
+    </AppCard>
   );
 }

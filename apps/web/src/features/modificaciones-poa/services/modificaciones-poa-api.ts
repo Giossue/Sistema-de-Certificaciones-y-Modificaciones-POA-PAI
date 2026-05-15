@@ -1,27 +1,55 @@
-import { authHeaders } from "@/services/auth-headers";
-import { requestJson } from "@/services/http";
+import { ApiError, api } from "@/services/api-client";
 import { queryParams } from "@/services/query-params";
 import type {
   ActividadSaldo,
   CrearModificacionPayload,
+  EditarModificacionObservadaPayload,
   Modificacion,
   ModificacionAccion,
   PeriodoFiscal,
 } from "../types";
 
+type ApiData<T> = { data?: T };
+type ApiActionResponse<T = any> = {
+  res: Response;
+  data: T;
+  ok: boolean;
+  status: number;
+};
+
+async function compatAction(request: Promise<unknown>): Promise<ApiActionResponse> {
+  try {
+    const data = await request;
+    const res = new Response(null, { status: 200 });
+    return { res, data, ok: true, status: res.status };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      const res = new Response(null, { status: error.status });
+      return {
+        res,
+        data: error.data,
+        ok: false,
+        status: error.status,
+      };
+    }
+    throw error;
+  }
+}
+
 export async function cargarPeriodosModificaciones() {
-  const { data } = await requestJson("/api/v1/periodos-fiscales", {
-    headers: authHeaders(),
-  });
-  return (data || []) as PeriodoFiscal[];
+  return api.get<PeriodoFiscal[]>("/api/v1/periodos-fiscales");
 }
 
 export async function listarMotivosModificaciones() {
-  const { res, data } = await requestJson("/api/v1/modificaciones-poa/motivos", {
-    headers: authHeaders(),
-  });
-  if (!res.ok) return null;
-  return (data.data || []) as string[];
+  try {
+    const data = await api.get<ApiData<string[]>>(
+      "/api/v1/modificaciones-poa/motivos",
+    );
+    return data.data || [];
+  } catch (error) {
+    if (error instanceof ApiError) return null;
+    throw error;
+  }
 }
 
 export async function listarModificacionesPoa(params: {
@@ -32,13 +60,17 @@ export async function listarModificacionesPoa(params: {
     page: params.page,
     pageSize: params.pageSize,
   });
-  const { res, data } = await requestJson(
-    `/api/v1/modificaciones-poa?${searchParams.toString()}`,
-    { headers: authHeaders() },
-  );
-  if (!res.ok) return null;
+  let data: ApiData<{ items?: Modificacion[]; totalItems?: number }>;
+  try {
+    data = await api.get(
+      `/api/v1/modificaciones-poa?${searchParams.toString()}`,
+    );
+  } catch (error) {
+    if (error instanceof ApiError) return null;
+    throw error;
+  }
   return {
-    items: (data.data?.items || []) as Modificacion[],
+    items: data.data?.items || [],
     totalItems: Number(data.data?.totalItems || 0),
   };
 }
@@ -50,23 +82,26 @@ export async function listarActividadesSaldo(params: {
   const searchParams = queryParams({ page: "1", pageSize: "200" });
   if (params.texto.trim()) searchParams.set("texto", params.texto.trim());
 
-  const { res, data } = await requestJson(
-    `/api/v1/saldos/${params.periodoFiscalId}/actividades?${searchParams.toString()}`,
-    { headers: authHeaders() },
-  );
-  if (!res.ok) return null;
-  return (data.data?.items || []) as ActividadSaldo[];
+  try {
+    const data = await api.get<ApiData<{ items?: ActividadSaldo[] }>>(
+      `/api/v1/saldos/${params.periodoFiscalId}/actividades?${searchParams.toString()}`,
+    );
+    return data.data?.items || [];
+  } catch (error) {
+    if (error instanceof ApiError) return null;
+    throw error;
+  }
 }
 
 export async function crearModificacionPoa(payload: CrearModificacionPayload) {
-  return requestJson("/api/v1/modificaciones-poa", {
-    method: "POST",
-    headers: {
-      ...authHeaders(),
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+  return compatAction(api.post("/api/v1/modificaciones-poa", payload));
+}
+
+export async function editarModificacionObservada(
+  id: string,
+  payload: EditarModificacionObservadaPayload,
+) {
+  return compatAction(api.patch(`/api/v1/modificaciones-poa/${id}`, payload));
 }
 
 export async function ejecutarAccionModificacionPoa(params: {
@@ -74,23 +109,33 @@ export async function ejecutarAccionModificacionPoa(params: {
   tipo: ModificacionAccion;
   observaciones?: string;
 }) {
-  const body =
-    params.tipo === "observar"
-      ? JSON.stringify({ observaciones: params.observaciones || "" })
-      : undefined;
+  const endpointByAction: Record<ModificacionAccion, string> = {
+    observar: `/api/v1/modificaciones-poa/${params.id}/observar`,
+    reenviar: `/api/v1/modificaciones-poa/${params.id}/reenviar`,
+    suscribir: `/api/v1/modificaciones-poa/${params.id}/suscribir`,
+    aprobar: `/api/v1/modificaciones-poa/${params.id}/aprobar`,
+    aplicar: `/api/v1/modificaciones-poa/${params.id}/aplicar`,
+  };
 
-  return requestJson(`/api/v1/modificaciones-poa/${params.id}/${params.tipo}`, {
-    method: "POST",
-    headers: {
-      ...authHeaders(),
-      "Content-Type": "application/json",
-    },
-    body,
-  });
+  if (params.tipo === "observar" || params.tipo === "reenviar") {
+    return compatAction(
+      api.post(endpointByAction[params.tipo], {
+        observaciones: params.observaciones || "",
+      }),
+    );
+  }
+
+  if (params.tipo === "suscribir") {
+    return compatAction(api.post(endpointByAction.suscribir));
+  }
+
+  if (params.tipo === "aprobar") {
+    return compatAction(api.post(endpointByAction.aprobar));
+  }
+
+  return compatAction(api.post(endpointByAction.aplicar));
 }
 
 export async function descargarInformeModificacionPoa(id: string) {
-  return fetch(`/api/v1/modificaciones-poa/${id}/informe`, {
-    headers: authHeaders(),
-  });
+  return api.raw(`/api/v1/modificaciones-poa/${id}/informe`);
 }

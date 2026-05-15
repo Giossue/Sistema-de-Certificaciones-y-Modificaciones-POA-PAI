@@ -1,6 +1,5 @@
-import { Button } from "@heroui/react";
 import { CheckCircle, Download, Eye, PenLine, Send } from "lucide-react";
-import { AppBadge, AppTable } from "@/components/app-ui";
+import { AppBadge, AppButton, AppTable } from "@/components/app-ui";
 import { EmptyState, SectionCard } from "@/components/saas-layout";
 import type { Certificacion, CertificacionAccion } from "../types";
 
@@ -92,6 +91,8 @@ export function CertificacionesBandeja({
       ) : (
         <AppTable
           columns={certificacionesColumns}
+          data={certificaciones}
+          getRowKey={(cert) => cert.id}
           minWidth={1180}
           pagination={{
             currentPage,
@@ -101,6 +102,65 @@ export function CertificacionesBandeja({
             onPageChange,
             onItemsPerPageChange,
           }}
+          mobileRender={(cert) => (
+            <div className="space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="app-table-primary font-mono">
+                    {cert.numero || "Pendiente"}
+                  </p>
+                  <p className="app-table-secondary">
+                    {cert.actividad?.actividadCodigo} -
+                    {cert.actividad?.actividadNombre}
+                  </p>
+                </div>
+                <AppBadge tone={estadoTone[cert.estado] || "neutral"}>
+                  {estadoLabels[cert.estado] || cert.estado}
+                </AppBadge>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="app-table-secondary">Tipo</p>
+                  <p className="app-table-primary">{cert.tipo || "POA"}</p>
+                </div>
+                <div>
+                  <p className="app-table-secondary">Monto</p>
+                  <p className="app-table-primary">
+                    $
+                    {cert.monto.toLocaleString("es-EC", {
+                      minimumFractionDigits: 2,
+                    })}
+                  </p>
+                </div>
+                <div>
+                  <p className="app-table-secondary">Solicitante</p>
+                  <p className="app-table-primary">
+                    {cert.solicitante?.nombre || "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="app-table-secondary">Ítem / Fuente</p>
+                  <p className="app-table-primary">
+                    {cert.actividad?.itemCodigo || "-"} /
+                    {cert.actividad?.fuenteCodigo || "-"}
+                  </p>
+                </div>
+              </div>
+              {cert.observaciones && (
+                <p className="app-table-secondary">Obs: {cert.observaciones}</p>
+              )}
+              <CertificacionActions
+                cert={cert}
+                canApprove={canApprove}
+                canObserve={canObserve}
+                canSubscribe={canSubscribe}
+                canUse={canUse}
+                canCreate={canCreate}
+                onAccion={onAccion}
+                onDescargar={onDescargar}
+              />
+            </div>
+          )}
         >
           {certificaciones.map((cert) => (
             <tr key={cert.id} className="app-surface-row">
@@ -138,76 +198,113 @@ export function CertificacionesBandeja({
                 </AppBadge>
               </td>
               <td className="px-4 py-3">
-                <div className="flex flex-wrap justify-center gap-2">
-                  {["solicitada", "observada"].includes(cert.estado) &&
-                    canApprove && (
-                      <Button
-                        size="sm"
-                        className="app-button app-button-primary"
-                        onPress={() => onAccion(cert.id, "aprobar")}
-                      >
-                        <CheckCircle size={14} /> Aprobar
-                      </Button>
-                    )}
-                  {cert.estado === "generada" && canSubscribe && (
-                    <Button
-                      size="sm"
-                      className="app-button app-button-primary"
-                      onPress={() => onAccion(cert.id, "suscribir")}
-                    >
-                      <PenLine size={14} /> Suscribir
-                    </Button>
-                  )}
-                  {cert.estado === "suscrita" && canUse && (
-                    <Button
-                      size="sm"
-                      className="app-button app-button-primary"
-                      onPress={() => onAccion(cert.id, "marcar-uso")}
-                    >
-                      <CheckCircle size={14} /> Uso
-                    </Button>
-                  )}
-                  {cert.estado === "devuelta_financiero" && canCreate && (
-                    <Button
-                      size="sm"
-                      className="app-button app-button-primary"
-                      onPress={() => onAccion(cert.id, "reenviar")}
-                    >
-                      <Send size={14} /> Reenviar
-                    </Button>
-                  )}
-                  {["solicitada", "generada"].includes(cert.estado) &&
-                    canObserve && (
-                      <Button
-                        size="sm"
-                        className="app-button app-button-secondary"
-                        variant="outline"
-                        onPress={() => onAccion(cert.id, "observar")}
-                      >
-                        <Eye size={14} /> Observar
-                      </Button>
-                    )}
-                  {cert.documentos
-                    .filter((doc) => doc.tipo !== "habilitante")
-                    .map((doc) => (
-                      <Button
-                        key={doc.id}
-                        size="sm"
-                        className="app-button app-button-secondary"
-                        variant="outline"
-                        onPress={() =>
-                          onDescargar(cert.id, doc.id, doc.nombreOriginal)
-                        }
-                      >
-                        <Download size={14} /> PDF
-                      </Button>
-                    ))}
-                </div>
+                <CertificacionActions
+                  cert={cert}
+                  canApprove={canApprove}
+                  canObserve={canObserve}
+                  canSubscribe={canSubscribe}
+                  canUse={canUse}
+                  canCreate={canCreate}
+                  onAccion={onAccion}
+                  onDescargar={onDescargar}
+                />
               </td>
             </tr>
           ))}
         </AppTable>
       )}
     </SectionCard>
+  );
+}
+
+function CertificacionActions({
+  cert,
+  canApprove,
+  canObserve,
+  canSubscribe,
+  canUse,
+  canCreate,
+  onAccion,
+  onDescargar,
+}: {
+  cert: Certificacion;
+  canApprove: boolean;
+  canObserve: boolean;
+  canSubscribe: boolean;
+  canUse: boolean;
+  canCreate: boolean;
+  onAccion: (id: string, tipo: CertificacionAccion) => void;
+  onDescargar: (
+    certificacionId: string,
+    documentoId: string,
+    nombre: string,
+  ) => void;
+}) {
+  return (
+    <div className="flex flex-wrap justify-center gap-2">
+      {["solicitada", "observada"].includes(cert.estado) && canApprove && (
+        <AppButton
+          type="button"
+          size="sm"
+          variant="primary"
+          onClick={() => onAccion(cert.id, "aprobar")}
+        >
+          <CheckCircle size={14} /> Aprobar
+        </AppButton>
+      )}
+      {cert.estado === "generada" && canSubscribe && (
+        <AppButton
+          type="button"
+          size="sm"
+          variant="primary"
+          onClick={() => onAccion(cert.id, "suscribir")}
+        >
+          <PenLine size={14} /> Suscribir
+        </AppButton>
+      )}
+      {cert.estado === "suscrita" && canUse && (
+        <AppButton
+          type="button"
+          size="sm"
+          variant="primary"
+          onClick={() => onAccion(cert.id, "marcar-uso")}
+        >
+          <CheckCircle size={14} /> Uso
+        </AppButton>
+      )}
+      {cert.estado === "devuelta_financiero" && canCreate && (
+        <AppButton
+          type="button"
+          size="sm"
+          variant="primary"
+          onClick={() => onAccion(cert.id, "reenviar")}
+        >
+          <Send size={14} /> Reenviar
+        </AppButton>
+      )}
+      {["solicitada", "generada"].includes(cert.estado) && canObserve && (
+        <AppButton
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={() => onAccion(cert.id, "observar")}
+        >
+          <Eye size={14} /> Observar
+        </AppButton>
+      )}
+      {cert.documentos
+        .filter((doc) => doc.tipo !== "habilitante")
+        .map((doc) => (
+          <AppButton
+            key={doc.id}
+            type="button"
+            size="sm"
+            variant="secondary"
+            onClick={() => onDescargar(cert.id, doc.id, doc.nombreOriginal)}
+          >
+            <Download size={14} /> PDF
+          </AppButton>
+        ))}
+    </div>
   );
 }

@@ -1,10 +1,10 @@
-import { authHeaders, getAuthToken } from "@/services/auth-headers";
-import { requestJson } from "@/services/http";
+import { ApiError, api } from "@/services/api-client";
 import { queryParams } from "@/services/query-params";
 import type {
   ActividadPoa,
   CatalogosPoa,
   Filtro,
+  FilterOption,
   PeriodoFiscal,
   PoaImportResult,
   PoaInfo,
@@ -12,34 +12,66 @@ import type {
   SortKey,
 } from "../types";
 
-export async function cargarPeriodosPoa() {
-  const { res, data } = await requestJson("/api/v1/periodos-fiscales", {
-    headers: authHeaders(),
-  });
-  if (!res.ok) {
-    throw new Error(data.error || "No se pudieron cargar los periodos fiscales");
+type ApiData<T> = { data?: T; error?: string };
+type ApiActionResponse<T = any> = {
+  res: Response;
+  data: T;
+  ok: boolean;
+  status: number;
+};
+
+async function compatRequest<T>(
+  request: Promise<T>,
+): Promise<ApiActionResponse<T>> {
+  try {
+    const data = await request;
+    const res = new Response(null, { status: 200 });
+    return { res, data, ok: true, status: res.status };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      const res = new Response(null, { status: error.status });
+      return {
+        res,
+        data: error.data as T,
+        ok: false,
+        status: error.status,
+      };
+    }
+    throw error;
   }
-  return (data || []) as PeriodoFiscal[];
 }
 
-export async function consultarPoaResumen(periodoFiscalId: string): Promise<PoaInfo | null> {
-  const [resumenRes, versionRes] = await Promise.all([
-    fetch(`/api/v1/saldos/${periodoFiscalId}/resumen`, {
-      headers: authHeaders(),
-    }),
-    fetch(`/api/v1/poa/vigente/${periodoFiscalId}`, {
-      headers: authHeaders(),
-    }),
-  ]);
-  const resumenData = await resumenRes.json();
-  const versionData = await versionRes.json();
+export async function cargarPeriodosPoa() {
+  try {
+    return await api.get<PeriodoFiscal[]>("/api/v1/periodos-fiscales");
+  } catch (error) {
+    if (error instanceof ApiError) {
+      const data = error.data as { error?: string } | undefined;
+      throw new Error(
+        data?.error || "No se pudieron cargar los periodos fiscales",
+        { cause: error },
+      );
+    }
+    throw error;
+  }
+}
 
-  if (!resumenRes.ok || !resumenData.data) {
+export async function consultarPoaResumen(
+  periodoFiscalId: string,
+): Promise<PoaInfo | null> {
+  const [resumenRes, versionRes] = await Promise.all([
+    compatRequest<ApiData<any>>(
+      api.get(`/api/v1/saldos/${periodoFiscalId}/resumen`),
+    ),
+    compatRequest<ApiData<any>>(api.get(`/api/v1/poa/vigente/${periodoFiscalId}`)),
+  ]);
+
+  if (!resumenRes.ok || !resumenRes.data.data) {
     return null;
   }
 
-  const resumen = resumenData.data;
-  const version = versionRes.ok ? versionData.data : null;
+  const resumen = resumenRes.data.data;
+  const version = versionRes.ok ? versionRes.data.data : null;
   return {
     id: version?.id || periodoFiscalId,
     numeroVersion: Number(version?.numeroVersion || 1),
@@ -66,40 +98,31 @@ export async function listarCatalogosPoa(
 
   const [programasRes, actividadesRes, itemsRes, fuentesRes] =
     await Promise.all([
-      fetch(`/api/v1/poa/${periodoFiscalId}/programas`, {
-        headers: authHeaders(),
-      }),
+      api.get<ApiData<FilterOption[]>>(
+        `/api/v1/poa/${periodoFiscalId}/programas`,
+      ),
       currentFiltro.programa
-        ? fetch(
+        ? api.get<ApiData<FilterOption[]>>(
             `/api/v1/poa/${periodoFiscalId}/actividades?${actividadParams.toString()}`,
-            { headers: authHeaders() },
           )
         : Promise.resolve(null),
       currentFiltro.actividad
-        ? fetch(`/api/v1/poa/${periodoFiscalId}/items?${itemParams.toString()}`, {
-            headers: authHeaders(),
-          })
+        ? api.get<ApiData<FilterOption[]>>(
+            `/api/v1/poa/${periodoFiscalId}/items?${itemParams.toString()}`,
+          )
         : Promise.resolve(null),
       currentFiltro.item
-        ? fetch(
+        ? api.get<ApiData<FilterOption[]>>(
             `/api/v1/poa/${periodoFiscalId}/fuentes?${fuenteParams.toString()}`,
-            { headers: authHeaders() },
           )
         : Promise.resolve(null),
     ]);
 
-  const [programas, actividadesUnicas, items, fuentes] = await Promise.all([
-    programasRes.json(),
-    actividadesRes ? actividadesRes.json() : Promise.resolve({ data: [] }),
-    itemsRes ? itemsRes.json() : Promise.resolve({ data: [] }),
-    fuentesRes ? fuentesRes.json() : Promise.resolve({ data: [] }),
-  ]);
-
   return {
-    programas: programas.data || [],
-    actividades: actividadesUnicas.data || [],
-    items: items.data || [],
-    fuentes: fuentes.data || [],
+    programas: programasRes.data || [],
+    actividades: actividadesRes?.data || [],
+    items: itemsRes?.data || [],
+    fuentes: fuentesRes?.data || [],
   };
 }
 
@@ -128,17 +151,18 @@ export async function listarActividadesPoa(params: {
   if (params.filtro.fuente) searchParams.set("fuente", params.filtro.fuente);
   if (params.filtro.verSoloConSaldo) searchParams.set("soloConSaldo", "true");
 
-  const saldosRes = await fetch(
-    `/api/v1/saldos/${params.periodoFiscalId}/actividades?${searchParams.toString()}`,
-    { headers: authHeaders(), signal: params.signal },
+  const saldosRes = await compatRequest<ApiData<any>>(
+    api.get(
+      `/api/v1/saldos/${params.periodoFiscalId}/actividades?${searchParams.toString()}`,
+      { signal: params.signal },
+    ),
   );
 
   if (!saldosRes.ok) {
     return { actividades: [], totalItems: 0 };
   }
 
-  const saldosData = await saldosRes.json();
-  const payload = saldosData.data || {};
+  const payload = saldosRes.data.data || {};
   const rows = Array.isArray(payload) ? payload : payload.items || [];
   return {
     actividades: rows.map((item: any) => ({
@@ -168,19 +192,23 @@ export async function importarPoaBase(
   archivo: File,
   periodoFiscalId: string,
 ): Promise<PoaImportResult> {
-  const token = getAuthToken();
   const formData = new FormData();
   formData.append("archivo", archivo);
   formData.append("periodoFiscalId", periodoFiscalId);
 
-  const res = await fetch("/api/v1/poa/importar-poa-base", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
-    body: formData,
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Error al importar");
-  return data.data;
+  try {
+    const data = await api.form<ApiData<PoaImportResult>>(
+      "/api/v1/poa/importar-poa-base",
+      formData,
+    );
+    return data.data as PoaImportResult;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      const data = error.data as { error?: string } | undefined;
+      throw new Error(data?.error || "Error al importar", { cause: error });
+    }
+    throw error;
+  }
 }
 
 export async function consultarSaldoPoa(params: {
@@ -196,7 +224,9 @@ export async function consultarSaldoPoa(params: {
     item: params.item,
     fuente: params.fuente,
   });
-  return requestJson(`/api/v1/poa/${params.periodoFiscalId}/saldo?${searchParams.toString()}`, {
-    headers: authHeaders(),
-  });
+  return compatRequest(
+    api.get(
+      `/api/v1/poa/${params.periodoFiscalId}/saldo?${searchParams.toString()}`,
+    ),
+  );
 }

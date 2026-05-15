@@ -1,30 +1,44 @@
 @import "tailwindcss";
 
+/* Tailwind utility bridge: expose the same semantic tokens used by runtime CSS. */
 @theme {
-  --color-primary: #132c41;
-  --color-primary-foreground: #ffffff;
-  --color-app-bg: #f3f5f8;
-  --color-surface: #ffffff;
-  --color-surface-muted: #f8fafc;
-  --color-border: #d9e0e8;
-  --color-text-main: #17202a;
-  --color-text-muted: #64748b;
-  --color-success: #15803d;
-  --color-success-soft: #ecfdf3;
-  --color-warning: #b7791f;
-  --color-warning-soft: #fffbeb;
-  --color-danger: #b91c1c;
-  --color-danger-soft: #fef2f2;
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-app-bg: var(--app-bg);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text-main: var(--text-main);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-border: var(--success-border);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-border: var(--warning-border);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-border: var(--danger-border);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-border: var(--info-border);
 }
 
 :root {
+  /* Design tokens: source of truth for app surfaces, status, type and spacing. */
   --app-bg: #f3f5f8;
   --surface: #ffffff;
   --surface-muted: #f8fafc;
+  --surface-elevated: var(--surface);
   --border: #d9e0e8;
   --border-strong: #c5ced9;
+  --border-subtle: var(--border);
   --primary: #132c41;
   --primary-hover: #0d2235;
+  --primary-foreground: #ffffff;
+  --primary-foreground-muted: rgba(255, 255, 255, 0.72);
   --primary-soft: #eef4f8;
   --primary-border: #bfd0dd;
   --text-main: #17202a;
@@ -39,16 +53,28 @@
   --danger: #b91c1c;
   --danger-soft: #fef2f2;
   --danger-border: #fecaca;
+  --info: var(--primary);
+  --info-soft: var(--primary-soft);
+  --info-border: var(--primary-border);
   --scroll-thumb: #cbd5e1;
   --scroll-thumb-hover: #94a3b8;
   --table-border: #edf1f5;
   --table-row-hover: #f8fbfd;
+  --skeleton-base: #e8edf3;
+  --skeleton-sheen: rgba(255, 255, 255, 0.72);
   --radius: 6px;
+  --radius-sm: var(--radius);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius);
   --control-height: 40px;
   --shadow-surface:
     0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.04);
+  --shadow-focus: 0 0 0 3px rgba(19, 44, 65, 0.12);
+  --state-hover-primary-soft: rgba(19, 44, 65, 0.04);
   --space-page: 24px;
   --space-card: 20px;
+  --space-page-sm: 16px;
+  --space-card-sm: 16px;
   --font-page: 13px;
   --font-meta: 12px;
   --font-label: 11px;
@@ -127,6 +153,8 @@ main {
   font-weight: var(--weight-body);
 }
 
+/* Compatibility layer for legacy Tailwind/HeroUI screens. Shrink this as components
+   move to app-level primitives in the next UI phases. */
 main
   :is(p, span, label, dt, dd, li, td, th, input, select, textarea, button, a) {
   letter-spacing: 0 !important;
@@ -250,6 +278,7 @@ main h2 + p {
 }
 
 /* Surfaces */
+/* TODO legacy: keep section-card until old SectionCard imports are migrated to AppCard. */
 main .section-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -286,11 +315,7 @@ main :is(div, section).bg-white.shadow-sm {
     background-color var(--motion-base) var(--ease-standard);
 }
 
-main :is(div, section).bg-white.shadow-sm.p-4 {
-  padding: var(--space-card) !important;
-}
-
-main :is(div, section).bg-white.shadow-sm.p-5 {
+main :is(div, section).bg-white.shadow-sm:is(.p-4, .p-5) {
   padding: var(--space-card) !important;
 }
 
@@ -372,7 +397,7 @@ input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
   border-color: var(--primary) !important;
-  box-shadow: 0 0 0 3px rgba(19, 44, 65, 0.12) !important;
+  box-shadow: var(--shadow-focus) !important;
   outline: none !important;
 }
 
@@ -401,7 +426,7 @@ select:disabled {
   color: var(--text-muted) !important;
 }
 
-/* HeroUI/buttons */
+/* TODO legacy: keep broad HeroUI/button normalization until all action buttons use AppButton. */
 button,
 [role="button"] {
   border-radius: var(--radius) !important;
@@ -410,7 +435,6 @@ button,
 
 main button,
 main [role="button"],
-main a,
 main input,
 main select,
 main textarea,
@@ -493,7 +517,7 @@ main .filter-toggle-thumb {
 
 main .filter-toggle-track.is-on .filter-toggle-thumb {
   transform: translateX(14px);
-  background: #ffffff;
+  background: var(--primary-foreground);
 }
 
 main .table-sort-button {
@@ -570,7 +594,7 @@ main .app-pagination-button:hover {
 main .app-pagination-button.is-active {
   border-color: var(--primary);
   background: var(--primary);
-  color: #ffffff;
+  color: var(--primary-foreground);
 }
 
 main .app-pagination-ellipsis {
@@ -587,10 +611,38 @@ main .app-empty-state {
   text-align: center;
 }
 
+/* TODO legacy: InlineAlert uses this class; old InlineMessage imports still depend on it. */
 main .app-inline-message {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 16px;
   border: 1px solid var(--border);
   padding: 12px;
+  color: var(--text-secondary);
+}
+
+main .app-inline-message-content {
+  min-width: 0;
+}
+
+main .app-inline-message-title {
+  margin: 0 0 4px;
+  color: var(--text-main);
+  font-weight: var(--weight-strong);
+}
+
+main .app-inline-message-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+main .app-inline-message-info {
+  border-color: var(--info-border);
+  background: var(--info-soft);
 }
 
 main .app-inline-message-success {
@@ -606,6 +658,11 @@ main .app-inline-message-danger {
 main .app-inline-message-neutral {
   border-color: var(--border);
   background: var(--surface-muted);
+}
+
+main .app-inline-message-warning {
+  border-color: var(--warning-border);
+  background: var(--warning-soft);
 }
 
 main .table-skeleton {
@@ -667,10 +724,21 @@ main .app-button {
   cursor: pointer;
 }
 
+main .app-button-sm {
+  min-height: 28px !important;
+  height: 28px !important;
+  padding: 0 10px;
+}
+
+main .app-button-md {
+  min-height: 32px !important;
+  height: 32px !important;
+}
+
 main .app-button-primary {
   border-color: var(--primary) !important;
   background: var(--primary) !important;
-  color: #ffffff !important;
+  color: var(--primary-foreground) !important;
 }
 
 main .app-button-primary:hover {
@@ -696,6 +764,157 @@ main .app-button-ghost {
 main .app-button-ghost:hover {
   background: var(--surface-muted) !important;
   color: var(--primary) !important;
+}
+
+main .app-button-danger {
+  border-color: var(--danger-border) !important;
+  background: var(--danger-soft) !important;
+  color: var(--danger) !important;
+}
+
+main .app-button-danger:hover {
+  border-color: var(--danger) !important;
+  background: var(--danger-soft) !important;
+}
+
+main .app-button.is-loading {
+  cursor: progress;
+}
+
+main .app-button-spinner,
+main .app-loading-spinner {
+  flex: 0 0 auto;
+  animation: app-spin 800ms linear infinite;
+}
+
+main .app-icon-button {
+  width: 32px;
+  padding: 0;
+}
+
+main .app-icon-button.app-button-sm {
+  width: 28px;
+}
+
+main .app-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-surface);
+}
+
+main .app-card-padded {
+  padding: var(--space-card);
+}
+
+main .app-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.42);
+  padding: 16px;
+}
+
+main .app-dialog {
+  width: min(100%, 440px);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--info);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
+  padding: 20px;
+}
+
+main .app-dialog-danger {
+  border-top-color: var(--danger);
+}
+
+main .app-dialog-warning {
+  border-top-color: var(--warning);
+}
+
+main .app-dialog-header {
+  margin-bottom: 16px;
+}
+
+main .app-dialog-header h2 {
+  margin: 0;
+}
+
+main .app-dialog-header p {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+}
+
+main .app-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+main .app-form-field {
+  display: block;
+}
+
+main .app-form-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text-muted);
+  font-size: var(--font-meta) !important;
+  font-weight: var(--weight-medium);
+  line-height: 16px;
+}
+
+main .app-form-description {
+  display: block;
+  margin: -2px 0 6px;
+  color: var(--text-muted);
+  font-size: var(--font-meta) !important;
+  line-height: 16px;
+}
+
+main .app-form-error {
+  display: block;
+  margin-top: 6px;
+  color: var(--danger);
+  font-size: var(--font-meta) !important;
+  line-height: 16px;
+}
+
+main .app-control-full {
+  width: 100%;
+}
+
+main .app-control-sm {
+  min-height: 32px;
+}
+
+main .app-control-invalid {
+  border-color: var(--danger) !important;
+}
+
+main .app-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  padding: 16px;
+}
+
+main .app-section-header-main {
+  min-width: 0;
+}
+
+main .app-section-header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
 }
 
 main .app-subnav {
@@ -732,7 +951,7 @@ main .app-subnav-button:hover {
 main .app-subnav-button.is-active {
   border-color: var(--primary);
   background: var(--primary);
-  color: #ffffff;
+  color: var(--primary-foreground);
 }
 
 main .app-table {
@@ -740,9 +959,17 @@ main .app-table {
   table-layout: fixed;
 }
 
+main .app-table-card {
+  overflow: hidden;
+}
+
 main .app-table-frame {
   overflow-x: auto;
   padding-inline: 16px;
+}
+
+main .app-table-state {
+  padding: 16px;
 }
 
 main .app-table th,
@@ -750,8 +977,30 @@ main .app-table td {
   padding: 12px 16px !important;
 }
 
+main .app-table-density-compact th,
+main .app-table-density-compact td {
+  padding: 8px 12px !important;
+}
+
+main .app-table-sticky-header thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface-muted) !important;
+}
+
 main .app-table td {
   overflow-wrap: anywhere;
+}
+
+main .app-table-mobile-list {
+  display: none;
+  gap: 12px;
+  padding: 16px;
+}
+
+main .app-table-mobile-card {
+  padding: 16px;
 }
 
 main .app-table .app-table-primary {
@@ -804,9 +1053,9 @@ main .app-badge-danger {
 }
 
 main .app-badge-info {
-  border-color: var(--primary-border);
-  background: var(--primary-soft);
-  color: var(--primary);
+  border-color: var(--info-border);
+  background: var(--info-soft);
+  color: var(--info);
 }
 
 main .app-upload-target {
@@ -822,7 +1071,7 @@ main .app-upload-target {
 main .app-upload-target:hover,
 main .app-upload-target.is-active {
   border-color: var(--primary);
-  background: rgba(19, 44, 65, 0.04);
+  background: var(--state-hover-primary-soft);
 }
 
 main .app-upload-title {
@@ -853,7 +1102,7 @@ main .app-control-secondary:hover {
 main .app-control-primary {
   border: 1px solid var(--primary) !important;
   background: var(--primary) !important;
-  color: #ffffff !important;
+  color: var(--primary-foreground) !important;
 }
 
 main .app-control-primary:hover {
@@ -900,7 +1149,7 @@ main .app-search-box {
 
 main .app-search-box:focus-within {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(19, 44, 65, 0.12);
+  box-shadow: var(--shadow-focus);
 }
 
 main .app-search-box-lg {
@@ -917,6 +1166,93 @@ main .app-metric-card {
   border-radius: var(--radius);
   box-shadow: var(--shadow-surface);
   padding: var(--space-card);
+}
+
+main .app-metric-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+main .app-metric-card-label {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--font-label) !important;
+  font-weight: var(--weight-strong);
+  line-height: 16px;
+  text-transform: uppercase;
+}
+
+main .app-metric-card-icon {
+  color: var(--text-muted);
+}
+
+main .app-metric-card-value {
+  margin: 8px 0 0;
+  color: var(--text-main);
+  font-size: 20px !important;
+  font-weight: 650;
+  line-height: 26px;
+}
+
+main .app-metric-card-description {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: var(--font-meta) !important;
+  line-height: 16px;
+}
+
+main .app-metric-card-success {
+  border-color: var(--success-border);
+}
+
+main .app-metric-card-warning {
+  border-color: var(--warning-border);
+}
+
+main .app-metric-card-danger {
+  border-color: var(--danger-border);
+}
+
+main .app-metric-card-info {
+  border-color: var(--info-border);
+}
+
+main .app-state-icon {
+  display: inline-flex;
+  margin-bottom: 12px;
+  color: var(--text-muted);
+}
+
+main .app-state-title {
+  margin: 0;
+  color: var(--text-main);
+  font-weight: var(--weight-strong);
+}
+
+main .app-state-description {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+}
+
+main .app-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+main .app-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+main .app-error-state {
+  border: 1px solid var(--danger-border);
+  background: var(--danger-soft);
 }
 
 main .app-dashed-upload {
@@ -946,6 +1282,7 @@ main .app-panel-muted {
   background: var(--surface-muted);
 }
 
+/* TODO legacy: replace app-status-message callers with InlineAlert before removal. */
 main .app-status-message {
   display: flex;
   align-items: center;
@@ -1100,7 +1437,7 @@ main .app-table-row-clickable {
 }
 
 .auth-title {
-  color: #ffffff;
+  color: var(--primary-foreground);
   font-size: 24px;
   font-weight: var(--weight-title);
   line-height: 32px;
@@ -1108,7 +1445,7 @@ main .app-table-row-clickable {
 
 .auth-subtitle,
 .auth-footer {
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--primary-foreground-muted);
   font-size: var(--font-meta);
   line-height: 16px;
 }
@@ -1154,7 +1491,7 @@ main .app-table-row-clickable {
   width: 100%;
   min-height: 40px !important;
   background: var(--primary) !important;
-  color: #ffffff !important;
+  color: var(--primary-foreground) !important;
   font-size: var(--font-body) !important;
   font-weight: var(--weight-medium) !important;
 }
@@ -1175,7 +1512,7 @@ main [role="button"]:not([aria-disabled="true"]):active {
 button[class*="bg-primary"],
 .btn-primary {
   background: var(--primary) !important;
-  color: var(--color-primary-foreground) !important;
+  color: var(--primary-foreground) !important;
 }
 
 button[class*="bg-primary"]:hover,
@@ -1262,7 +1599,7 @@ main .poa-money {
   font-variant-numeric: tabular-nums;
 }
 
-/* Status and semantic colors */
+/* Status and semantic color compatibility for legacy utility classes. */
 .text-green-600,
 .text-green-700 {
   color: var(--success) !important;
@@ -1382,7 +1719,7 @@ main :is(.text-xl, .text-2xl).font-bold:not(h1):not(h2) {
 .skeleton-line {
   position: relative;
   overflow: hidden;
-  background: #e8edf3;
+  background: var(--skeleton-base);
 }
 
 .skeleton-line::after {
@@ -1393,7 +1730,7 @@ main :is(.text-xl, .text-2xl).font-bold:not(h1):not(h2) {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.72),
+    var(--skeleton-sheen),
     transparent
   );
   animation: skeleton-sweep 1.2s var(--ease-standard) infinite;
@@ -1460,6 +1797,12 @@ main :is(.text-xl, .text-2xl).font-bold:not(h1):not(h2) {
   }
 }
 
+@keyframes app-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -1480,5 +1823,22 @@ main :is(.text-xl, .text-2xl).font-bold:not(h1):not(h2) {
   main h1 {
     font-size: 22px !important;
     line-height: 30px !important;
+  }
+
+  main .app-table-card .app-section-header {
+    flex-direction: column;
+  }
+
+  main .app-table-card .app-section-header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  main .app-table-desktop-frame {
+    display: none;
+  }
+
+  main .app-table-mobile-list {
+    display: grid;
   }
 }

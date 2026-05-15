@@ -1,9 +1,9 @@
 import { Context } from "hono";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../../../database/prisma";
 import { listarTramites } from "../../application/queries/listar-tramites.query";
 import { userFrom } from "../../../../common/http/context.helpers";
 
-const prisma = new PrismaClient();
+
 
 export class TramitesController {
   async listar(c: Context) {

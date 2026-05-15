@@ -1,5 +1,5 @@
 import { Context } from "hono";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../../../database/prisma";
 import { SaldosMotorService } from "../../../saldos/application/use-cases/saldos-motor.service";
 import { obtenerResumenDireccion } from "../../application/queries/obtener-resumen-direccion.query";
 import { exportarReporteDireccionCsv } from "../../infrastructure/exporters/reporte-direccion-csv.exporter";
@@ -7,7 +7,7 @@ import { exportarReporteDireccionPdf } from "../../infrastructure/exporters/repo
 import { exportarReporteDireccionXlsx } from "../../infrastructure/exporters/reporte-direccion-xlsx.exporter";
 import { param } from "../../../../common/http/context.helpers";
 
-const prisma = new PrismaClient();
+
 const saldosMotor = new SaldosMotorService(prisma);
 
 export class ReportesController {

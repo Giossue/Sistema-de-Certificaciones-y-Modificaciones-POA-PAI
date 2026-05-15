@@ -61,7 +61,47 @@ export function CedulaHistoryPanel({
         <div className="overflow-x-auto px-4 pb-4">
           <AppTable
             columns={historialColumns}
+            data={versiones}
+            getRowKey={(version) => version.id}
             minWidth={980}
+            mobileRender={(v) => (
+              <div className="space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="app-table-primary truncate">{v.archivoNombre}</p>
+                    <p className="app-table-secondary inline-flex items-center gap-1">
+                      <Hash size={11} /> {v.archivoHash.slice(0, 12)}...
+                    </p>
+                  </div>
+                  {v.vigente ? (
+                    <AppBadge tone="success">Vigente</AppBadge>
+                  ) : (
+                    <AppBadge>Histórica</AppBadge>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm text-slate-600">
+                  <div>
+                    <span className="font-semibold text-slate-700">Importador</span>
+                    <p className="truncate">{v.importadoPor}</p>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-700">Entradas</span>
+                    <p>{v.totalEntradas.toLocaleString("es-EC")}</p>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-700">Fecha</span>
+                    <p>{formatearFecha(v.createdAt).split(",")[0]}</p>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-700">Corte</span>
+                    <p>{formatearFecha(v.corteFecha).split(",")[0]}</p>
+                  </div>
+                </div>
+                <AppButton type="button" size="sm" onClick={() => onOpenVersion(v.id)}>
+                  Abrir
+                </AppButton>
+              </div>
+            )}
             pagination={{
               currentPage: versionesPage,
               totalPages: Math.max(1, Math.ceil(totalVersiones / versionesPageSize)),

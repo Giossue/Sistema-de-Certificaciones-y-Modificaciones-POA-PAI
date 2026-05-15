@@ -1,10 +1,10 @@
 import { Context } from "hono";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../../../database/prisma";
 import { LoginDtoSchema } from "../../application/dto/login.dto";
 import { LoginUsecase } from "../../application/use-cases/login.usecase";
 import { ValidationError } from "../../../../common/errors/http-error.map";
 
-const prisma = new PrismaClient();
+
 
 export class AuthController {
   static async login(c: Context) {

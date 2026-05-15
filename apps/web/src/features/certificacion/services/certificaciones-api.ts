@@ -1,5 +1,4 @@
-import { authHeaders } from "@/services/auth-headers";
-import { requestJson } from "@/services/http";
+import { ApiError, api } from "@/services/api-client";
 import { queryParams } from "@/services/query-params";
 import type {
   Actividad,
@@ -13,29 +12,57 @@ import type {
   TipoCertificacion,
 } from "../types";
 
+type ApiData<T> = { data?: T; error?: string };
+type ApiActionResponse<T = any> = {
+  res: Response;
+  data: T;
+  ok: boolean;
+  status: number;
+};
+
+async function compatRequest<T>(
+  request: Promise<T>,
+): Promise<ApiActionResponse<T>> {
+  try {
+    const data = await request;
+    const res = new Response(null, { status: 200 });
+    return { res, data, ok: true, status: res.status };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      const res = new Response(null, { status: error.status });
+      return {
+        res,
+        data: error.data as T,
+        ok: false,
+        status: error.status,
+      };
+    }
+    throw error;
+  }
+}
+
 export async function cargarPeriodosCertificacion() {
-  const { res, data } = await requestJson("/api/v1/periodos-fiscales", {
-    headers: authHeaders(),
-  });
-  return { ok: res.ok, data: (data || []) as PeriodoFiscal[] };
+  const response = await compatRequest<PeriodoFiscal[]>(
+    api.get("/api/v1/periodos-fiscales"),
+  );
+  return { ok: response.ok, data: (response.data || []) as PeriodoFiscal[] };
 }
 
 export async function cargarProgramasPoa(periodoFiscalId: string) {
-  const { data } = await requestJson(`/api/v1/poa/${periodoFiscalId}/programas`, {
-    headers: authHeaders(),
-  });
-  return (data.data || []) as Programa[];
+  const data = await api.get<ApiData<Programa[]>>(
+    `/api/v1/poa/${periodoFiscalId}/programas`,
+  );
+  return data.data || [];
 }
 
 export async function cargarActividadesPoa(
   periodoFiscalId: string,
   programaCodigo: string,
 ) {
-  const { data } = await requestJson(
+  const data = await api.get<ApiData<Actividad[]>>(
     `/api/v1/poa/${periodoFiscalId}/actividades?programa=${encodeURIComponent(programaCodigo)}`,
-    { headers: authHeaders() },
   );
-  return (data.data || []) as Actividad[];
+  return data.data || [];
 }
 
 export async function cargarItemsPoa(
@@ -43,22 +70,20 @@ export async function cargarItemsPoa(
   programaCodigo: string,
   actividadCodigo: string,
 ) {
-  const { data } = await requestJson(
+  const data = await api.get<ApiData<ItemPoa[]>>(
     `/api/v1/poa/${periodoFiscalId}/items?programa=${encodeURIComponent(programaCodigo)}&actividad=${encodeURIComponent(actividadCodigo)}`,
-    { headers: authHeaders() },
   );
-  return (data.data || []) as ItemPoa[];
+  return data.data || [];
 }
 
 export async function cargarFuentesPoa(
   periodoFiscalId: string,
   itemCodigo: string,
 ) {
-  const { data } = await requestJson(
+  const data = await api.get<ApiData<FuentePoa[]>>(
     `/api/v1/poa/${periodoFiscalId}/fuentes?item=${encodeURIComponent(itemCodigo)}`,
-    { headers: authHeaders() },
   );
-  return (data.data || []) as FuentePoa[];
+  return data.data || [];
 }
 
 export async function consultarSaldoPoa(params: {
@@ -68,9 +93,8 @@ export async function consultarSaldoPoa(params: {
   itemCodigo: string;
   fuenteCodigo: string;
 }): Promise<SaldoInfo> {
-  const { data } = await requestJson(
+  const data = await api.get<ApiData<SaldoInfo>>(
     `/api/v1/poa/${params.periodoFiscalId}/saldo?programa=${encodeURIComponent(params.programaCodigo)}&actividad=${encodeURIComponent(params.actividadCodigo)}&item=${encodeURIComponent(params.itemCodigo)}&fuente=${encodeURIComponent(params.fuenteCodigo)}`,
-    { headers: authHeaders() },
   );
   return {
     saldoDisponible: Number(data.data?.saldoDisponible || 0),
@@ -86,14 +110,18 @@ export async function listarCertificaciones(params: {
     page: params.page,
     pageSize: params.pageSize,
   });
-  const { res, data } = await requestJson(
-    `/api/v1/certificaciones?${searchParams.toString()}`,
-    { headers: authHeaders() },
-  );
-  if (!res.ok) return null;
+  let data: ApiData<{ items?: Certificacion[]; totalItems?: number }>;
+  try {
+    data = await api.get(
+      `/api/v1/certificaciones?${searchParams.toString()}`,
+    );
+  } catch (error) {
+    if (error instanceof ApiError) return null;
+    throw error;
+  }
   const payload = data.data || {};
   return {
-    items: (payload.items || []) as Certificacion[],
+    items: payload.items || [],
     totalItems: Number(payload.totalItems || 0),
   };
 }
@@ -122,11 +150,9 @@ export async function crearCertificacion(params: {
     formData.append("documentos", documento),
   );
 
-  return requestJson("/api/v1/certificaciones", {
-    method: "POST",
-    headers: authHeaders(),
-    body: formData,
-  });
+  return compatRequest<ApiData<unknown>>(
+    api.form("/api/v1/certificaciones", formData),
+  );
 }
 
 export async function ejecutarAccionCertificacion(params: {
@@ -134,26 +160,24 @@ export async function ejecutarAccionCertificacion(params: {
   tipo: CertificacionAccion;
   observaciones?: string;
 }) {
-  let body: BodyInit | undefined;
-  const headers: Record<string, string> = authHeaders();
-  if (params.tipo === "observar") {
-    headers["Content-Type"] = "application/json";
-    body = JSON.stringify({ observaciones: params.observaciones });
-  }
+  const body =
+    params.tipo === "observar"
+      ? { observaciones: params.observaciones }
+      : undefined;
 
-  return requestJson(`/api/v1/certificaciones/${params.id}/${params.tipo}`, {
-    method: "POST",
-    headers,
-    body,
-  });
+  return compatRequest(
+    api.post<ApiData<unknown>>(
+      `/api/v1/certificaciones/${params.id}/${params.tipo}`,
+      body,
+    ),
+  );
 }
 
 export async function descargarDocumentoCertificacion(
   certificacionId: string,
   documentoId: string,
 ) {
-  return fetch(
+  return api.raw(
     `/api/v1/certificaciones/${certificacionId}/documentos/${documentoId}/download`,
-    { headers: authHeaders() },
   );
 }

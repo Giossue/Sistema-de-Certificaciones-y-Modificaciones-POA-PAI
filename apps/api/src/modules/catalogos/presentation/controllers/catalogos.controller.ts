@@ -1,8 +1,8 @@
 import { Context } from "hono";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../../../database/prisma";
 import { ListarCatalogosUsecase } from "../../application/use-cases/listar-catalogos.usecase";
 
-const prisma = new PrismaClient();
+
 
 export class CatalogosController {
   static async listar(c: Context) {

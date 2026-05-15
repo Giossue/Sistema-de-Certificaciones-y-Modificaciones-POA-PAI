@@ -1,6 +1,5 @@
-import { Button } from "@heroui/react";
 import { CheckCircle, XCircle } from "lucide-react";
-import { AppTable } from "@/components/app-ui";
+import { AppButton, AppTable } from "@/components/app-ui";
 import { EmptyState, SectionCard } from "@/components/saas-layout";
 import { EstadoBadge } from "@/components/tramites";
 import { formatMoney } from "@/services/money";
@@ -42,6 +41,28 @@ export function LiquidacionesTable({
   onAprobar: (id: string) => void;
   onRechazar: (id: string) => void;
 }) {
+  const renderActions = (liquidacion: Liquidacion) =>
+    liquidacion.estado === "solicitada" && canApprove ? (
+      <div className="flex flex-wrap justify-center gap-2">
+        <AppButton
+          type="button"
+          size="sm"
+          variant="primary"
+          onClick={() => onAprobar(liquidacion.id)}
+        >
+          <CheckCircle size={14} /> Aprobar
+        </AppButton>
+        <AppButton
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={() => onRechazar(liquidacion.id)}
+        >
+          <XCircle size={14} /> Rechazar
+        </AppButton>
+      </div>
+    ) : null;
+
   return (
     <SectionCard title="Historial" contentClassName="p-0">
       {liquidaciones.length === 0 ? (
@@ -49,6 +70,25 @@ export function LiquidacionesTable({
       ) : (
         <AppTable
           columns={liquidacionesColumns}
+          data={liquidaciones}
+          getRowKey={(liquidacion) => liquidacion.id}
+          mobileRender={(liquidacion) => (
+            <div className="space-y-3">
+              <div>
+                <p className="app-table-primary font-mono">
+                  {liquidacion.certificacion?.numero || "-"}
+                </p>
+                <p className="app-table-secondary">
+                  {liquidacion.tipo} · Modo {liquidacion.modo}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span>${formatMoney(liquidacion.monto)}</span>
+                <EstadoBadge estado={liquidacion.estado || "aprobada"} />
+              </div>
+              {renderActions(liquidacion)}
+            </div>
+          )}
           minWidth={940}
           pagination={{
             currentPage,
@@ -75,26 +115,7 @@ export function LiquidacionesTable({
                 <EstadoBadge estado={l.estado || "aprobada"} />
               </td>
               <td>
-                <div className="flex justify-center gap-2">
-                  {l.estado === "solicitada" && canApprove && (
-                    <>
-                      <Button
-                        size="sm"
-                        className="app-button app-button-primary"
-                        onPress={() => onAprobar(l.id)}
-                      >
-                        <CheckCircle size={14} /> Aprobar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onPress={() => onRechazar(l.id)}
-                      >
-                        <XCircle size={14} /> Rechazar
-                      </Button>
-                    </>
-                  )}
-                </div>
+                {renderActions(l)}
               </td>
             </tr>
           ))}

@@ -1,6 +1,5 @@
-import { Button } from "@heroui/react";
 import { CheckCircle, XCircle } from "lucide-react";
-import { AppTable } from "@/components/app-ui";
+import { AppButton, AppTable } from "@/components/app-ui";
 import { EmptyState, SectionCard } from "@/components/saas-layout";
 import { EstadoBadge } from "@/components/tramites";
 import { formatMoney } from "@/services/money";
@@ -47,6 +46,28 @@ export function AnulacionesTable({
   onAprobar: (id: string) => void;
   onRechazar: (id: string) => void;
 }) {
+  const renderActions = (anulacion: Anulacion) =>
+    anulacion.estado === "solicitada" && canApprove ? (
+      <div className="flex flex-wrap justify-center gap-2">
+        <AppButton
+          type="button"
+          size="sm"
+          variant="primary"
+          onClick={() => onAprobar(anulacion.id)}
+        >
+          <CheckCircle size={14} /> Aprobar
+        </AppButton>
+        <AppButton
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={() => onRechazar(anulacion.id)}
+        >
+          <XCircle size={14} /> Rechazar
+        </AppButton>
+      </div>
+    ) : null;
+
   return (
     <SectionCard title="Historial" contentClassName="p-0">
       {anulaciones.length === 0 ? (
@@ -54,6 +75,23 @@ export function AnulacionesTable({
       ) : (
         <AppTable
           columns={anulacionesColumns}
+          data={anulaciones}
+          getRowKey={(anulacion) => anulacion.id}
+          mobileRender={(anulacion) => (
+            <div className="space-y-3">
+              <div>
+                <p className="app-table-primary font-mono">
+                  {anulacion.certificacion?.numero || "-"}
+                </p>
+                <p className="app-table-secondary">{anulacion.motivo}</p>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span>${formatMoney(anulacion.montoLiberado)}</span>
+                <EstadoBadge estado={anulacion.estado || "aprobada"} />
+              </div>
+              {renderActions(anulacion)}
+            </div>
+          )}
           minWidth={1090}
           pagination={{
             currentPage,
@@ -79,26 +117,7 @@ export function AnulacionesTable({
                 <EstadoBadge estado={a.estado || "aprobada"} />
               </td>
               <td>
-                <div className="flex justify-center gap-2">
-                  {a.estado === "solicitada" && canApprove && (
-                    <>
-                      <Button
-                        size="sm"
-                        className="app-button app-button-primary"
-                        onPress={() => onAprobar(a.id)}
-                      >
-                        <CheckCircle size={14} /> Aprobar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onPress={() => onRechazar(a.id)}
-                      >
-                        <XCircle size={14} /> Rechazar
-                      </Button>
-                    </>
-                  )}
-                </div>
+                {renderActions(a)}
               </td>
             </tr>
           ))}

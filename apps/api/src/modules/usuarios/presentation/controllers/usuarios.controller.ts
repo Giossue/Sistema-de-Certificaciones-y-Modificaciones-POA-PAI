@@ -1,5 +1,5 @@
 import { Context } from "hono";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../../../database/prisma";
 import { ListarUsuariosUsecase } from "../../application/use-cases/listar-usuarios.usecase";
 import { CrearUsuarioUsecase } from "../../application/use-cases/crear-usuario.usecase";
 import { UpdateUsuarioUsecase } from "../../application/use-cases/update-usuario.usecase";
@@ -8,7 +8,7 @@ import { CreateUsuarioDtoSchema } from "../../application/dto/create-usuario.dto
 import { UpdateUsuarioDtoSchema } from "../../application/dto/update-usuario.dto";
 import { ValidationError } from "../../../../common/errors/http-error.map";
 
-const prisma = new PrismaClient();
+
 
 export class UsuariosController {
   static async listar(c: Context) {

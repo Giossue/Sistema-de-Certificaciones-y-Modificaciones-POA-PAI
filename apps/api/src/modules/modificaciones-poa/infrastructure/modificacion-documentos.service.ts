@@ -14,8 +14,10 @@ type InformeData = {
   itemAnterior: string;
   itemNuevo: string;
   fuente: string;
+  responsableNuevo?: string | null;
   montoAnterior: string;
   montoNuevo: string;
+  justificacionLinea?: string | null;
   fecha: Date;
 };
 

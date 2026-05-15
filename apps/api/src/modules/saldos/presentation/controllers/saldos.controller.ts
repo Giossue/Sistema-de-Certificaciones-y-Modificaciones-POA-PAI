@@ -1,9 +1,9 @@
 import { Context } from "hono";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../../../database/prisma";
 import { ValidationError } from "../../../../common/errors/http-error.map";
 import { SaldosMotorService } from "../../application/use-cases/saldos-motor.service";
 
-const prisma = new PrismaClient();
+
 const saldosMotor = new SaldosMotorService(prisma);
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

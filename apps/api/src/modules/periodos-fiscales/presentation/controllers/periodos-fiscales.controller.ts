@@ -1,11 +1,11 @@
 import { Context } from "hono";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../../../database/prisma";
 import { ListarPeriodosFiscalesUsecase } from "../../application/use-cases/listar-periodos.usecase";
 import { CrearPeriodoFiscalUsecase } from "../../application/use-cases/crear-periodo-fiscal.usecase";
 import { CreatePeriodoFiscalDtoSchema } from "../../application/dto/create-periodo-fiscal.dto";
 import { ValidationError } from "../../../../common/errors/http-error.map";
 
-const prisma = new PrismaClient();
+
 
 export class PeriodosFiscalesController {
   static async listar(c: Context) {

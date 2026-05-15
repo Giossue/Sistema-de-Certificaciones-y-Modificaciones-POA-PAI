@@ -1,5 +1,5 @@
 import { Context } from "hono";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../../../database/prisma";
 import { ValidationError, NotFoundError } from "../../../../common/errors/http-error.map";
 import { ImportarCedulaMefUseCase } from "../../application/use-cases/importar-cedula-mef.usecase";
 import { ConsultarCedulaVigenteUseCase } from "../../application/use-cases/consultar-cedula-vigente.usecase";
@@ -11,7 +11,7 @@ import { CompararCedulaVersionesUseCase } from "../../application/use-cases/comp
 import { ValidarCombinacionCedulaUseCase } from "../../application/use-cases/validar-combinacion-cedula.usecase";
 import { ListarProgramasCedulaUseCase, ListarActividadesCedulaUseCase, ListarItemsCedulaUseCase, ListarFuentesCedulaUseCase } from "../../application/use-cases/listar-catalogos-cedula.usecase";
 
-const prisma = new PrismaClient();
+
 const parserService = new CedulaMefParserService();
 const auditoriaService = new AuditoriaService(prisma);
 

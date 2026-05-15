@@ -1,13 +1,22 @@
 import { useEffect, useState, useCallback } from "react";
-import { Button } from "@heroui/react";
-import { Loader, Plus, Trash2, CheckCircle, XCircle } from "lucide-react";
+import { Plus, Trash2, CheckCircle, XCircle, Pencil } from "lucide-react";
 import { api } from "@/services/api-client";
+import { PageHeader } from "@/components/saas-layout";
 import {
-  InlineMessage,
-  PageHeader,
-  SectionCard,
-} from "@/components/saas-layout";
-import { AppBadge, AppTable } from "@/components/app-ui";
+  AppBadge,
+  AppButton,
+  AppCard,
+  AppIconButton,
+  AppInput,
+  AppSectionHeader,
+  AppSelect,
+  AppTable,
+  ConfirmDialog,
+  EmptyState,
+  FormField,
+  InlineAlert,
+  LoadingState,
+} from "@/components/app-ui";
 type Rol =
   | "admin"
   | "director"
@@ -56,6 +65,10 @@ export function UsuariosPage() {
     email: string;
     rol: Rol;
   } | null>(null);
+  const [usuarioAEliminar, setUsuarioAEliminar] = useState<Usuario | null>(
+    null,
+  );
+  const [deleting, setDeleting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const cargar = useCallback(async () => {
@@ -118,23 +131,19 @@ export function UsuariosPage() {
       setMessage(err.message || "No se pudo cambiar el estado del usuario");
     }
   };
-  const eliminar = async (usuario: Usuario) => {
-    if (
-      !confirm(
-        `¿Eliminar a ${usuario.nombre}? Esta acción no se puede deshacer.`,
-      )
-    )
-      return;
-    setSaving(true);
+  const eliminar = async () => {
+    if (!usuarioAEliminar) return;
+    setDeleting(true);
     setMessage("");
     try {
-      await api.delete(`/usuarios/${usuario.id}`);
+      await api.delete(`/usuarios/${usuarioAEliminar.id}`);
       setMessage("Usuario eliminado correctamente");
+      setUsuarioAEliminar(null);
       await cargar();
     } catch (err: any) {
       setMessage(err.message || "No se pudo eliminar el usuario");
     } finally {
-      setSaving(false);
+      setDeleting(false);
     }
   };
   const totalPages = Math.max(1, Math.ceil(totalUsuarios / pageSize));
@@ -144,17 +153,18 @@ export function UsuariosPage() {
         title="Usuarios"
         description="Administracion de accesos institucionales"
       />
-      {message && <InlineMessage>{message}</InlineMessage>}
+      {message && <InlineAlert tone="info">{message}</InlineAlert>}
       <div className="space-y-6">
-        <SectionCard
-          title={editMode ? "Editar usuario" : "Nuevo usuario"}
-          description="Datos de acceso y rol operativo"
-        >
+        <AppCard>
+          <AppSectionHeader
+            title={editMode ? "Editar usuario" : "Nuevo usuario"}
+            description="Datos de acceso y rol operativo"
+            className="-mx-5 -mt-5 mb-5"
+          />
           <div className="max-w-5xl space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-[minmax(220px,1.1fr)_minmax(220px,1fr)_180px]">
-              <label className="block">
-                <span className="mb-1.5 block">Nombre</span>
-                <input
+              <FormField label="Nombre">
+                <AppInput
                   value={editMode ? editMode.nombre : form.nombre}
                   onChange={(e) =>
                     editMode
@@ -162,12 +172,10 @@ export function UsuariosPage() {
                       : setForm((f) => ({ ...f, nombre: e.target.value }))
                   }
                   placeholder="Nombre completo"
-                  className="app-field-input"
                 />
-              </label>
-              <label className="block">
-                <span className="mb-1.5 block">Correo</span>
-                <input
+              </FormField>
+              <FormField label="Correo">
+                <AppInput
                   value={editMode ? editMode.email : form.email}
                   onChange={(e) =>
                     editMode
@@ -175,47 +183,48 @@ export function UsuariosPage() {
                       : setForm((f) => ({ ...f, email: e.target.value }))
                   }
                   placeholder="correo@ueb.edu.ec"
-                  className="app-field-input"
                   type="email"
                 />
-              </label>
-              <label className="block">
-                <span className="mb-1.5 block">Rol</span>
-                <select
+              </FormField>
+              <FormField label="Rol">
+                <AppSelect
                   value={editMode ? editMode.rol : form.rol}
                   onChange={(e) =>
                     editMode
                       ? setEditMode({ ...editMode, rol: e.target.value as Rol })
                       : setForm((f) => ({ ...f, rol: e.target.value as Rol }))
                   }
-                  className="app-field-input"
                 >
                   {Object.entries(rolLabel).map(([value, label]) => (
                     <option key={value} value={value}>
                       {label}
                     </option>
                   ))}
-                </select>
-              </label>
+                </AppSelect>
+              </FormField>
               {!editMode && (
-                <label className="block md:col-span-2 xl:col-span-1">
-                  <span className="mb-1.5 block">Contraseña temporal</span>
-                  <input
+                <FormField
+                  label="Contraseña temporal"
+                  className="md:col-span-2 xl:col-span-1"
+                >
+                  <AppInput
                     value={form.password}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, password: e.target.value }))
                     }
                     type="password"
                     placeholder="Minimo 6 caracteres"
-                    className="app-field-input"
                   />
-                </label>
+                </FormField>
               )}
             </div>
             <div className="app-form-actions flex-col gap-2 sm:flex-row">
-              <Button
-                onPress={editMode ? actualizar : crear}
-                isDisabled={
+              <AppButton
+                type="button"
+                variant="primary"
+                onClick={editMode ? actualizar : crear}
+                loading={saving}
+                disabled={
                   saving ||
                   !(editMode
                     ? editMode.nombre && editMode.email
@@ -223,35 +232,85 @@ export function UsuariosPage() {
                 }
                 className="app-button app-button-primary w-full whitespace-nowrap sm:w-auto"
               >
-                {saving ? (
-                  <Loader size={16} className="animate-spin" />
-                ) : (
-                  <Plus size={16} />
-                )}
+                {!saving && <Plus size={16} />}
                 {editMode ? "Actualizar usuario" : "Crear usuario"}
-              </Button>
+              </AppButton>
               {editMode && (
-                <Button
-                  onPress={() => setEditMode(null)}
-                  variant="outline"
+                <AppButton
+                  type="button"
+                  onClick={() => setEditMode(null)}
+                  variant="secondary"
                   className="w-full sm:w-auto"
                 >
                   Cancelar
-                </Button>
+                </AppButton>
               )}
             </div>
           </div>
-        </SectionCard>
-        <SectionCard title="Usuarios registrados" contentClassName="p-0">
+        </AppCard>
+        <AppCard padded={false}>
+          <AppSectionHeader title="Usuarios registrados" />
           {loading ? (
-            <div className="p-10 text-center">
-              <Loader size={20} className="animate-spin mx-auto mb-2" />
-              Cargando usuarios
-            </div>
+            <LoadingState title="Cargando usuarios" />
+          ) : usuarios.length === 0 ? (
+            <EmptyState title="No hay usuarios registrados" />
           ) : (
             <>
               <AppTable
                 columns={usuariosColumns}
+                data={usuarios}
+                getRowKey={(usuario) => usuario.id}
+                mobileRender={(usuario) => (
+                  <div className="space-y-3">
+                    <div>
+                      <p className="app-table-primary">{usuario.nombre}</p>
+                      <p className="app-table-secondary">{usuario.email}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <AppBadge>{rolLabel[usuario.rol]}</AppBadge>
+                      <AppBadge tone={usuario.activo ? "success" : "danger"}>
+                        {usuario.activo ? "Activo" : "Inactivo"}
+                      </AppBadge>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <AppButton
+                        type="button"
+                        size="sm"
+                        onClick={() =>
+                          setEditMode({
+                            id: usuario.id,
+                            nombre: usuario.nombre,
+                            email: usuario.email,
+                            rol: usuario.rol,
+                          })
+                        }
+                      >
+                        <Pencil size={14} /> Editar
+                      </AppButton>
+                      <AppIconButton
+                        label={usuario.activo ? "Desactivar" : "Activar"}
+                        icon={
+                          usuario.activo ? (
+                            <XCircle size={14} />
+                          ) : (
+                            <CheckCircle size={14} />
+                          )
+                        }
+                        size="sm"
+                        onClick={() => toggleActivo(usuario)}
+                        disabled={usuario.rol === "admin"}
+                      />
+                      <AppIconButton
+                        label="Eliminar"
+                        icon={<Trash2 size={14} />}
+                        size="sm"
+                        variant="danger"
+                        onClick={() => setUsuarioAEliminar(usuario)}
+                        disabled={usuario.rol === "admin"}
+                      />
+                    </div>
+                  </div>
+                )}
                 minWidth={960}
                 pagination={{
                   currentPage,
@@ -276,11 +335,10 @@ export function UsuariosPage() {
                     </td>
                     <td>
                       <div className="flex items-center justify-end gap-1">
-                        <Button
+                        <AppButton
+                          type="button"
                           size="sm"
-                          variant="outline"
-                          className="h-8 px-2"
-                          onPress={() =>
+                          onClick={() =>
                             setEditMode({
                               id: usuario.id,
                               nombre: usuario.nombre,
@@ -289,35 +347,30 @@ export function UsuariosPage() {
                             })
                           }
                         >
-                          Edit.
-                        </Button>
+                          Editar
+                        </AppButton>
                         <div className="flex gap-1">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className={`h-8 w-8 p-0 flex items-center justify-center ${usuario.activo ? " hover:bg-amber-50" : " hover:bg-green-50"}`}
-                            onPress={() => toggleActivo(usuario)}
-                            isDisabled={usuario.rol === "admin"}
-                            aria-label={
-                              usuario.activo ? "Desactivar" : "Activar"
+                          <AppIconButton
+                            label={usuario.activo ? "Desactivar" : "Activar"}
+                            icon={
+                              usuario.activo ? (
+                                <XCircle size={14} />
+                              ) : (
+                                <CheckCircle size={14} />
+                              )
                             }
-                          >
-                            {usuario.activo ? (
-                              <XCircle size={14} />
-                            ) : (
-                              <CheckCircle size={14} />
-                            )}
-                          </Button>
-                          <Button
                             size="sm"
-                            variant="outline"
-                            className="app-icon-button-danger"
-                            onPress={() => eliminar(usuario)}
-                            isDisabled={usuario.rol === "admin"}
-                            aria-label="Eliminar"
-                          >
-                            <Trash2 size={14} />
-                          </Button>
+                            onClick={() => toggleActivo(usuario)}
+                            disabled={usuario.rol === "admin"}
+                          />
+                          <AppIconButton
+                            label="Eliminar"
+                            icon={<Trash2 size={14} />}
+                            size="sm"
+                            variant="danger"
+                            onClick={() => setUsuarioAEliminar(usuario)}
+                            disabled={usuario.rol === "admin"}
+                          />
                         </div>
                       </div>
                     </td>
@@ -326,8 +379,24 @@ export function UsuariosPage() {
               </AppTable>
             </>
           )}
-        </SectionCard>
+        </AppCard>
       </div>
+      <ConfirmDialog
+        open={Boolean(usuarioAEliminar)}
+        title="Eliminar usuario"
+        description={
+          usuarioAEliminar
+            ? `¿Eliminar a ${usuarioAEliminar.nombre}? Esta acción no se puede deshacer.`
+            : undefined
+        }
+        tone="danger"
+        confirmText="Eliminar"
+        loading={deleting}
+        onConfirm={eliminar}
+        onClose={() => {
+          if (!deleting) setUsuarioAEliminar(null);
+        }}
+      />
     </div>
   );
 }

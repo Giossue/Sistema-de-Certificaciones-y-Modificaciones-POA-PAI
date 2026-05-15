@@ -1,6 +1,6 @@
 import { Button } from "@heroui/react";
 import { CheckCircle, Download, Layers, Upload } from "lucide-react";
-import { AppBadge, AppTable } from "@/components/app-ui";
+import { AppBadge, AppButton, AppTable } from "@/components/app-ui";
 import { EmptyState, SectionCard, TableSkeleton } from "@/components/saas-layout";
 import type {
   ActividadPoa,
@@ -52,6 +52,44 @@ const poaColumns = [
   },
   { key: "accion", label: "Acción", align: "center" as const, width: "96px" },
 ];
+
+function formatMoney(value: number | string | null | undefined) {
+  return Number(value || 0).toLocaleString("es-EC", {
+    minimumFractionDigits: 2,
+  });
+}
+
+function getActividadStatus(a: ActividadPoa): {
+  saldo: number;
+  estadoLabel: string;
+  estadoTone: "neutral" | "success" | "warning" | "danger";
+} {
+  const saldo = Number(a.saldoDisponible);
+  const pct =
+    a.porcentajeDisponible ??
+    (Number(a.montoPlanificado) > 0
+      ? (saldo / Number(a.montoPlanificado)) * 100
+      : 0);
+  const isCritical = a.estado === "agotado" || a.estado === "critico" || pct < 10;
+  const isLow = a.estado === "bajo" || pct < 30;
+  const estadoLabel =
+    saldo <= 0
+      ? "Agotado"
+      : a.estado === "ok" || pct > 30
+        ? "OK"
+        : isLow && !isCritical
+          ? "Bajo"
+          : "Crítico";
+  const estadoTone =
+    saldo <= 0
+      ? "neutral"
+      : isCritical
+        ? "danger"
+        : isLow
+          ? "warning"
+          : "success";
+  return { saldo, estadoLabel, estadoTone };
+}
 
 export function PoaActivitiesSection({
   periodoFiscalId,
@@ -164,6 +202,8 @@ export function PoaActivitiesSection({
       ) : (
         <AppTable
           columns={poaColumns}
+          data={actividadesPaginadas}
+          getRowKey={(actividad) => actividad.id}
           minWidth={1436}
           sortKey={sortKey}
           sortDirection={sortDirection}
@@ -176,34 +216,62 @@ export function PoaActivitiesSection({
             onItemsPerPageChange: onPageSizeChange,
             onPageChange,
           }}
+          mobileRender={(a) => {
+            const { saldo, estadoLabel, estadoTone } = getActividadStatus(a);
+            return (
+              <div className="space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="app-table-primary">{a.actividadCodigo}</p>
+                    <p className="app-table-secondary">{a.actividadNombre}</p>
+                  </div>
+                  <AppBadge tone={estadoTone}>{estadoLabel}</AppBadge>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="app-table-secondary">Programa</p>
+                    <p className="app-table-primary">{a.programaCodigo}</p>
+                  </div>
+                  <div>
+                    <p className="app-table-secondary">Ítem</p>
+                    <p className="app-table-primary">{a.itemCodigo}</p>
+                  </div>
+                  <div>
+                    <p className="app-table-secondary">Fuente</p>
+                    <p className="app-table-primary">{a.fuenteCodigo}</p>
+                  </div>
+                  <div>
+                    <p className="app-table-secondary">Saldo</p>
+                    <p className="app-table-primary">${formatMoney(saldo)}</p>
+                  </div>
+                  <div>
+                    <p className="app-table-secondary">Planificado</p>
+                    <p className="app-table-primary">
+                      ${formatMoney(a.montoPlanificado)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="app-table-secondary">Certificado</p>
+                    <p className="app-table-primary">
+                      ${formatMoney(a.certificadoVigente)}
+                    </p>
+                  </div>
+                </div>
+                <AppButton
+                  type="button"
+                  size="sm"
+                  variant="primary"
+                  disabled={saldo <= 0}
+                  onClick={() => onCertificar(a, saldo)}
+                >
+                  Certificar
+                </AppButton>
+              </div>
+            );
+          }}
         >
           {actividadesPaginadas.map((a) => {
-            const saldo = Number(a.saldoDisponible);
-            const pct =
-              a.porcentajeDisponible ??
-              (Number(a.montoPlanificado) > 0
-                ? (saldo / Number(a.montoPlanificado)) * 100
-                : 0);
-            const isCritical =
-              a.estado === "agotado" || a.estado === "critico" || pct < 10;
-            const isLow = a.estado === "bajo" || pct < 30;
-            const saldoClass = isCritical ? "" : isLow ? "" : "";
-            const estadoLabel =
-              saldo <= 0
-                ? "Agotado"
-                : a.estado === "ok" || pct > 30
-                  ? "OK"
-                  : isLow && !isCritical
-                    ? "Bajo"
-                    : "Crítico";
-            const estadoTone =
-              saldo <= 0
-                ? "neutral"
-                : isCritical
-                  ? "danger"
-                  : isLow
-                    ? "warning"
-                    : "success";
+            const { saldo, estadoLabel, estadoTone } = getActividadStatus(a);
             return (
               <tr key={a.id}>
                 <td>
@@ -249,7 +317,7 @@ export function PoaActivitiesSection({
                     { minimumFractionDigits: 2 },
                   )}
                 </td>
-                <td className={`poa-money text-center ${saldoClass}`}>
+                <td className="poa-money text-center">
                   $
                   {saldo.toLocaleString("es-EC", {
                     minimumFractionDigits: 2,

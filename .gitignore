@@ -17,6 +17,13 @@ storage/uploads/*
 storage/generated/*
 !storage/uploads/.gitkeep
 !storage/generated/.gitkeep
+apps/api/storage/**
+!apps/api/storage/
+!apps/api/storage/.gitkeep
+!apps/api/storage/uploads/
+!apps/api/storage/uploads/.gitkeep
+!apps/api/storage/generated/
+!apps/api/storage/generated/.gitkeep
 
 # Logs
 *.log
