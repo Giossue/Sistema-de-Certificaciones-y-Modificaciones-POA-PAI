@@ -2,7 +2,7 @@ FROM oven/bun:1.3-alpine AS builder
 
 WORKDIR /app
 
-COPY package.json bun.lockb* ./
+COPY package.json bun.lock ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/ui/package.json ./packages/ui/
