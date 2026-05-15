@@ -7,7 +7,7 @@ export class CedulaMefParserService {
     return createHash("sha256").update(buffer).digest("hex");
   }
 
-  parse(buffer: Buffer, archivoNombre: string): ParseResult {
+  parse(buffer: Buffer, _archivoNombre: string): ParseResult {
     const result: ParseResult = { filas: [], errores: [] };
 
     try {

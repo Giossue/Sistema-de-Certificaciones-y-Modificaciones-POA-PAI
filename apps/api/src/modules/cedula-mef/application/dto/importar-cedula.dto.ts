@@ -1,6 +1,3 @@
-import { PrismaClient } from "@prisma/client";
-import { AuditoriaService } from "../../../auditoria/infrastructure/auditoria.service";
-
 export interface ImportarCedulaDto {
   archivoBuffer: Buffer;
   archivoNombre: string;

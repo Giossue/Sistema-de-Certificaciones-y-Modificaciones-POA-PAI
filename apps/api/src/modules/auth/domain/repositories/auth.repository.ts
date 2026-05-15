@@ -1,5 +1,4 @@
 import { Usuario } from "@prisma/client";
-import { Credenciales } from "../entities/credenciales.entity";
 
 export interface AuthRepository {
   buscarPorEmail(email: string): Promise<Usuario | null>;

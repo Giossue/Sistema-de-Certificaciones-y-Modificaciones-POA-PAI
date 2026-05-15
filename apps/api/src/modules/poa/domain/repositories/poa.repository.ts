@@ -1,5 +1,3 @@
-import { PoaVersion, ActividadesPoa } from "@prisma/client";
-
 export interface PoaVersionEntity {
   id: string;
   periodoFiscalId: string;

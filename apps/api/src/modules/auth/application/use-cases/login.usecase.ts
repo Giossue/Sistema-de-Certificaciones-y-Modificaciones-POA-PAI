@@ -1,8 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { SignJWT, jwtVerify } from "jose";
+import { SignJWT } from "jose";
 import { env } from "../../../../config/env";
-import { ValidationError, UnauthorizedError } from "../../../../common/errors/http-error.map";
+import { UnauthorizedError } from "../../../../common/errors/http-error.map";
 import { LoginDto } from "../dto/login.dto";
 
 export class LoginUsecase {

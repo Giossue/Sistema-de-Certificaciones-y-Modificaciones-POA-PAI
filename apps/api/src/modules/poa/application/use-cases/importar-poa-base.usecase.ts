@@ -140,7 +140,6 @@ export class ImportarPoaBaseUseCase {
 
     if (rawData.length < 10) return [];
 
-    const headers = rawData[9]; // Row index 9 is the header row
     const dataRows = rawData.slice(10);
 
     // Column indices (based on analysis):
@@ -165,8 +164,6 @@ export class ImportarPoaBaseUseCase {
       // Get item name from column 29 (Detalle Item) or fallback
       const itemNombre = String(raw[29] ?? raw[27] ?? "").trim() || String(itemCodigo);
 
-      // Get fuente name - derive from source number
-      const fuenteNum = parseInt(fuenteCodigo) || 1;
       const fuenteNombreMap: Record<string, string> = {
         "001": "Recursos Propios",
         "002": "Recursos Fiscales",

@@ -1,5 +1,4 @@
 import { PrismaClient } from "@prisma/client";
-import { ParsedRow } from "../dto/importar-cedula.dto";
 
 export interface DiffEntrada {
   tipo: "agregada" | "modificada" | "retirada";

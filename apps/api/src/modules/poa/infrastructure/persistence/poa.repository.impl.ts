@@ -1,4 +1,4 @@
-import { PrismaClient, PoaVersion, ActividadesPoa } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { PoaRepository, CrearPoaVersionDto, ActividadPoaEntity } from "../../domain/repositories/poa.repository";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

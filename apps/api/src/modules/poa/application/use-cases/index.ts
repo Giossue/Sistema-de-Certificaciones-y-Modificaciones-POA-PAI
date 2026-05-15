@@ -1,7 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { PoaRepository, CrearPoaVersionDto, ImportarDesdeCedulaDto } from "../../domain/repositories/poa.repository";
 import { PoaRepositoryImpl } from "../../infrastructure/persistence/poa.repository.impl";
-import { ImportarPoaBaseUseCase, ImportarPoaBaseDto } from "./importar-poa-base.usecase";
 
 export class CrearPoaVersionUseCase {
   private repo: PoaRepository;
